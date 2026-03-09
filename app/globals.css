@@ -1,26 +1,38 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* Main color */
+  --color-royal-blue: #1a2c50;
+  --color-sunshine-yellow: #ffbe00;
+  --color-sweet-red: #ff6b6b;
+  --color-sky-blue: #118eea;
+  --color-pastel-yellow: #f2c46f;
+
+  /* Brand color */
+  --color-cgv-red: #EC1E2B;
+  --color-xxi-gold: #F2C46F;
+  --color-xxi-gold-dark: #C6943F;
+  --color-cinepolis-blue: #000E62;
+
+  /* Shades */
+  --color-shade-900: #333333;
+  --color-shade-800: #333D58;
+  --color-shade-700: #4A4E62;
+  --color-shade-600: #5A637A;
+  --color-shade-500: #8F96A8;
+  --color-shade-400: #9DABBE;
+  --color-shade-300: #BDC5D4;
+  --color-shade-200: #DADFEB;
+  --color-shade-100: #FFFFFF;
+
+  /* State button */
+  --color-royal-blue-default: #1A2C50;
+  --color-royal-blue-hover: #282764;
+  --color-royal-blue-while-pressed: #383782;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Active bullet */
+.swiper-pagination-bullet-active {
+  background: white !important;
+  color: white !important;
 }

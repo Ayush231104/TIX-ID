@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Roboto, Inter } from 'next/font/google';
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+import GlobalLayout from "@/layout/GlobalLayout";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+
+export const roboto = Roboto({
+  weight: ['400', '700'],
+  subsets: ['latin'], 
+  display: 'swap',     
+  variable: '--font-roboto',
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -23,11 +26,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`font-sans ${inter.variable}`}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${roboto.variable} antialiased max-w-400 m-auto`}
       >
-        {children}
+        <GlobalLayout>
+          {children}
+        </GlobalLayout>
       </body>
     </html>
   );
