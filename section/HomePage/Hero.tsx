@@ -6,6 +6,8 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import 'swiper/css/navigation'
 import { Autoplay, Navigation } from 'swiper/modules'
+import MoviesForm from '@/components/admin/MoviesForm';
+import { useState } from 'react';
 
 const movies = [
   {
@@ -27,8 +29,17 @@ const movies = [
 ]
 
 const Hero = () => {
+  const [showForm, setShowForm] = useState(false);
+
   return (
     <div className="w-full my-16 mx-auto px-8 sm:px-8 md:px-12 lg:px-16 relative">
+      <button
+        onClick={() => setShowForm(!showForm)}
+        className="bg-royal-blue-default hover:bg-royal-blue-hover active:bg-royal-blue-while-pressed text-white px-4 py-2 rounded mb-4"
+      >
+        Add Movies
+      </button>
+      {showForm && <MoviesForm/>}
       <div className='w-full mx-auto sm:px-12 lg:px-24'>
         <div className="flex custom-prev absolute left-2 sm:left-15  top-1/2  z-20 -translate-y-1/2 cursor-pointer bg-white text-black w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 items-center justify-center rounded-full transition shadow-md ">
           <FaChevronLeft size={18} />

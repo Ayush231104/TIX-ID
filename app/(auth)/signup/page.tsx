@@ -1,4 +1,4 @@
-import SignupForm from '@/components/SignupForm';
+import SignupForm from '@/components/auth/SignupForm';
 import Image from 'next/image';
 import Link from 'next/link';
 import { GoArrowLeft } from 'react-icons/go';

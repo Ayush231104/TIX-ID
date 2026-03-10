@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import NewsForm from '@/components/NewsForm';
+import NewsForm from '@/components/admin/NewsForm';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import Image from 'next/image';

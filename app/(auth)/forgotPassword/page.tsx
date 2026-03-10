@@ -1,4 +1,4 @@
-import ForgotForm from "@/components/ForgotForm";
+import ForgotForm from "@/components/auth/ForgotForm";
 import Image from "next/image";
 import Link from "next/link";
 import { GoArrowLeft } from "react-icons/go";
