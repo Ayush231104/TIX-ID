@@ -5,20 +5,13 @@ import NewsForm from '@/components/admin/NewsForm';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import Image from 'next/image';
+import type { NewsCard } from '@/types';
 
 const supabase = createClient();
-type News = {
-  id: string;
-  title: string;
-  subtitle: string;
-  tag: string;
-  release_date: string;
-  category: string;
-  img: string;
-}
+
 const News = () => {
   const [showForm, setShowForm] = useState(false);
-  const [news, setNews] = useState<News[]>([]);
+  const [news, setNews] = useState<NewsCard[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,7 +25,7 @@ const News = () => {
       if (error) {
         setError(error.message);
       } else {
-        setNews(data || []);
+        setNews((data as NewsCard[]) ?? []);
       }
     };
 
@@ -75,7 +68,7 @@ const News = () => {
             </div>
             <button className='border px-3 py-2 text-xs font-normal mt-10 '>{item.category}</button>
             <h2 className="text-2xl font-medium leading-8 my-4.5">{item.title}</h2>
-            <p className="text-[16px] font-normal leading-6 text-shade-600">{new Date(item.release_date).toLocaleDateString('en-GB', {
+            <p className="text-[16px] font-normal leading-6 text-shade-600">{new Date(item.release_date ?? new Date()).toLocaleDateString('en-GB', {
               day: '2-digit',
               month: 'short',
               year: 'numeric'

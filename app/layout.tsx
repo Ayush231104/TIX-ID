@@ -4,6 +4,7 @@ import { Roboto, Inter } from 'next/font/google';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import GlobalLayout from "@/layout/GlobalLayout";
+import StoreProvider from "@/components/StoreProvider";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
@@ -30,9 +31,11 @@ export default function RootLayout({
       <body
         className={`${roboto.variable} antialiased max-w-400 m-auto`}
       >
-        <GlobalLayout>
-          {children}
-        </GlobalLayout>
+        <StoreProvider>
+          <GlobalLayout>
+            {children}
+          </GlobalLayout>
+        </StoreProvider>
       </body>
     </html>
   );

@@ -10,6 +10,5 @@ export default function HomePage() {
       <Advertisement/>
       <News/>
     </div>
-    
   )
 }
