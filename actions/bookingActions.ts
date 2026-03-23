@@ -95,7 +95,7 @@ export async function lockSeats(
     seat_id: seatId,
     user_id: userId,
     expires_at: expiresAt,
-    reservation_status: 'hold' as const,
+    reservation_status: 'hold' as const, 
   }));
 
   const { error } = await supabase

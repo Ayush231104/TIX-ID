@@ -69,6 +69,7 @@ export default function Navbar() {
             <Image
               src="/images/homepage/logo.png"
               alt="Logo"
+              className="shrink-0"
               width={80}
               height={40}
             />
@@ -76,11 +77,12 @@ export default function Navbar() {
         </Link>
 
         {user ?
-          <div className="hidden md:flex items-center gap-16">
-            <Link href="/" className="font-medium text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Home</Link>
-            <Link href="/tickets" className="font-medium text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Tiket Saya</Link>
-            <Link href="/news" className="font-medium text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">TIX ID News</Link>
-            <IoMdNotificationsOutline className="text-2xl" />
+          <div className="hidden md:flex items-center gap-6 lg:gap-10">
+            <Link href="/" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Home</Link>
+            <Link href="/movies" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Movies</Link>
+            <Link href="/tickets" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Tiket Saya</Link>
+            <Link href="/news" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">TIX ID News</Link>
+            <IoMdNotificationsOutline className="text-2xl " />
 
             <div className="relative" ref={dropdownRef}>
               <div
@@ -107,14 +109,15 @@ export default function Navbar() {
 
           </div>
           :
-          <div className="hidden md:flex items-center gap-12">
-            <Link href="/" className="font-medium text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Home</Link>
-            <Link href="/tickets" className="font-medium text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Tiket Saya</Link>
-            <Link href="/news" className="font-medium text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">TIX ID News</Link>
+          <div className="hidden md:flex items-center gap-6 lg:gap-10">
+            <Link href="/" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Home</Link>
+            <Link href="/movies" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Movies</Link>
+            <Link href="/tickets" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Tiket Saya</Link>
+            <Link href="/news" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">TIX ID News</Link>
             <div className="w-0.5 h-6 bg-shade-400">
             </div>
-            <IoMdNotificationsOutline className="text-2xl" />
-            <Link href="/signup" className="font-medium text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Register Account</Link>
+            <IoMdNotificationsOutline className="text-2xl shrink-0" />
+            <Link href="/signup" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Register Account</Link>
             <Link href="/login" className="flex items-center justify-center h-12 w-25.25 px-2 py-3 rounded-lg font-medium text-[24px] leading-8 bg-royal-blue-default hover:bg-royal-blue-hover active:bg-royal-blue-while-pressed text-sunshine-yellow">Login</Link>
           </div>
         }

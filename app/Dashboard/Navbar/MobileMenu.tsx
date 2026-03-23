@@ -85,6 +85,10 @@ export default function MobileMenu({ isOpen, onClose }: Props) {
 							<hr className="border-gray-200 w-full mt-4" />
 						</div>
 						<div>
+							<Link href="/movies" onClick={onClose} className="block font-medium text-[16px] text-shade-900 hover:text-royal-blue-default transition-colors">Movies</Link>
+							<hr className="border-gray-200 w-full mt-4" />
+						</div>
+						<div>
 							<Link href="/tickets" onClick={onClose} className="block font-medium text-[16px] text-shade-900 hover:text-royal-blue-default transition-colors">My Ticket</Link>
 							<hr className="border-gray-200 w-full mt-4" />
 						</div>

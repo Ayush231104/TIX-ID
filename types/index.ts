@@ -145,3 +145,47 @@ export type GroupedShowtime = {
   theater: Theater & { brands: Brand | null }
   showtimes: ShowtimeWithTheaterAndScreen[]
 }
+export type GroupedByTheater = {
+  theater: Theater & { brands: Brand | null }
+  screens: {
+    screen: Screen
+    showtimes: Showtime[]
+  }[]
+}
+
+export type ShowtimeForBooking = {
+  id: string
+  show_time: string
+  price: number | null
+  is_active: boolean | null
+  movie_id: string | null
+  theater_id: string | null
+  screen_id: string | null
+  created_at: string | null
+  updated_at: string | null
+  theater: {
+    id: string
+    name: string
+    address: string | null
+    brand_id: string | null
+    city_id: string | null
+    latitude: number | null   // ← new
+    longitude: number | null  // ← new
+    brands: {
+      id: string
+      name: string
+      logo_url: string | null
+    } | null
+    cities: {
+      id: string
+      name: string
+      latitude: number | null
+      longitude: number | null
+    } | null
+  } | null
+  screen: {
+    id: string
+    name: string
+    type: string | null
+  } | null
+}

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import Image from 'next/image';
 import type { NewsCard } from '@/types';
+import Skeleton from '@/components/ui/Skeleton';
 
 const supabase = createClient();
 
@@ -13,6 +14,7 @@ const News = () => {
   const [showForm, setShowForm] = useState(false);
   const [news, setNews] = useState<NewsCard[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -27,6 +29,7 @@ const News = () => {
       } else {
         setNews((data as NewsCard[]) ?? []);
       }
+      setLoading(false);
     };
 
     fetchNews();
@@ -37,7 +40,7 @@ const News = () => {
       <div className="flex justify-between">
         <div>
           <div className="text-2xl font-medium py-2 text-shade-900">
-            Coming soon
+            TIX ID News
           </div>
           <div className='text-[16px] leading-6 text-shade-600 '>The latest news about the world of cinema for you!</div>
         </div>
@@ -59,12 +62,30 @@ const News = () => {
       {showForm && <NewsForm />}
 
       {error && <div className="text-red-500">{error}</div>}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
-        {news.map((item) => (
-          <div key={item.id} className="w-full">
-            <div className='w-full h-60 relative'>
-              <Image src={item.img} alt={item.title} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" fill className='object-cover rounded-xl' priority ></Image>
+      {loading ? (
+        <div className="flex gap-6 overflow-hidden w-full">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex flex-col items-center gap-4 w-full">
+              <Skeleton w="w-full" h="h-80" rounded="rounded-2xl" />
+              <Skeleton w="w-40" h="h-6" />
+              <div className="flex gap-2">
+                <Skeleton w="w-12" h="h-5" />
+                <Skeleton w="w-12" h="h-5" />
+                <Skeleton w="w-16" h="h-5" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : news.length === 0 ? (
+        <div className="flex justify-center items-center h-96">
+          <p className="text-gray-500 text-lg">No news found</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
+          {news.map((item) => (
+            <div key={item.id} className="w-full">
+              <div className='w-full h-60 relative'>
+                <Image src={item.img} alt={item.title} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" fill className='object-cover rounded-xl' priority ></Image>
             </div>
             <button className='border px-3 py-2 text-xs font-normal mt-10 '>{item.category}</button>
             <h2 className="text-2xl font-medium leading-8 my-4.5">{item.title}</h2>
@@ -76,6 +97,7 @@ const News = () => {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 };
