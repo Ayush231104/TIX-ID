@@ -1,7 +1,7 @@
 'use client'
 import { useState } from "react";
 import DateSelector from "./DateSelector";
-import { ShowtimeWithTheaterAndScreen } from "@/types";
+import { ShowtimeForBooking } from "@/types";
 import ShowtimeSection from "./ShowtimeSection";
 import LocationFilter from "./filters/LocationFilter";
 import SearchFilter from "./filters/SearchFilter";
@@ -18,7 +18,7 @@ export default function Bookshow({
 }: {
   movieId: string
   onDateSelect: (date: Date) => void
-  onShowtimeSelect: (showtime: ShowtimeWithTheaterAndScreen) => void
+  onShowtimeSelect: (showtime: ShowtimeForBooking) => void
 }
 ) {
 

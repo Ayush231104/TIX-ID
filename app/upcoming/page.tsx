@@ -50,7 +50,7 @@ export default function UpcomingPage() {
 				</div>
 			) : 
 			(
-				<div className="w-full mt-12 flex flex-wrap justify-center gap-8 lg:gap-20">
+				<div className="w-full mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 justify-items-center">
 					{movies.map((movie) => {
 						return (
 							<div key={movie.id}>

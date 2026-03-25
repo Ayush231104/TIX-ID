@@ -1,7 +1,7 @@
 'use client'
 
 import Skeleton from '@/components/ui/Skeleton'
-import { Brand, City, Screen, ShowtimeForBooking, ShowtimeWithTheaterAndScreen, Theater } from '@/types'
+import { Brand, City, Screen, ShowtimeForBooking, Theater } from '@/types'
 import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { ImStarFull } from 'react-icons/im'
@@ -69,7 +69,7 @@ export default function ShowtimeSection({
 }: {
 	movieId: string
 	selectedDate: Date
-	onShowtimeSelect: (showtime: ShowtimeWithTheaterAndScreen) => void
+	onShowtimeSelect: (showtime: ShowtimeForBooking) => void
 	cityId: string | null
 	searchText: string
 	screenType: string | null
@@ -295,7 +295,7 @@ export default function ShowtimeSection({
 					<div className='sm:flex items-center justify-between mb-1 w-full'>
 						<div className='flex items-center gap-2'>
 							<span className='flex items-center justify-center shrink-0 text-pastel-yellow bg-royal-blue rounded-full size-8 text-lg'>
-								<ImStarFull className='shrink-0'/>
+								<ImStarFull className='shrink-0' />
 							</span>
 							<span className='text-shade-900 font-medium text-[18px] sm:text-2xl uppercase'>
 								{theater.name}
@@ -354,22 +354,9 @@ export default function ShowtimeSection({
 													screen_id: showtime.screen_id,
 													created_at: showtime.created_at,
 													updated_at: showtime.updated_at,
-													theater: {
-														...theater,
-														created_at: null,
-														updated_at: null,
-														user_id: null,
-													},
-													screen: {
-														...screen,
-														created_at: null,
-														updated_at: null,
-														seat_col: null,
-														seat_row: null,
-														total_seats: null,
-														theater_id: null,
-													},
-												} as ShowtimeWithTheaterAndScreen)
+													theater: theater,
+													screen: screen,
+												} as ShowtimeForBooking)
 											}}
 											className={`
                         						px-4 py-2 rounded-md text-sm font-medium border transition-all

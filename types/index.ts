@@ -94,6 +94,7 @@ export type TheaterWithScreens = Theater & {
 export type SeatWithStatus = Seat & {
   is_locked: boolean
   is_booked: boolean
+  locked_by_user_id: string | null
 }
 
 // ─────────────────────────────────────────
@@ -176,7 +177,7 @@ export type ShowtimeForBooking = {
       name: string
       logo_url: string | null
     } | null
-    cities: {
+    cities?: {
       id: string
       name: string
       latitude: number | null

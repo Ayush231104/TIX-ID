@@ -1,12 +1,16 @@
-import { Movie, ShowtimeWithTheaterAndScreen } from '@/types'
+'use client'
+import { Movie, ShowtimeForBooking } from '@/types'
 import Image from 'next/image'
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
 
 interface Props {
   movie: Movie
-  selectedShowtime: ShowtimeWithTheaterAndScreen | null
+  selectedShowtime: ShowtimeForBooking | null
 }
 
 function formatDuration(timetz: string | null): string {
+
   if (!timetz) return '—'
 
   const [time] = timetz.split('+')
@@ -38,6 +42,8 @@ function formatShowDate(timestamp: string): string {
 }
 
 export default function ShowDetails({ movie, selectedShowtime }: Props) {
+  const params = useParams();
+  const movieId = params.bookingId as string
   return (
     <div className=' mt-27.75 pl-8 lg:pl-32'>
       <div>
@@ -79,7 +85,7 @@ export default function ShowDetails({ movie, selectedShowtime }: Props) {
             {formatShowDate(selectedShowtime.show_time)}
           </div>
 
-           <div className='flex items-center justify-between mt-3'>
+          <div className='flex items-center justify-between mt-3'>
             <div className='font-medium text-2xl leading-8 text-shade-900 uppercase'>
               {selectedShowtime.screen?.name ?? '-'}
             </div>
@@ -92,9 +98,11 @@ export default function ShowDetails({ movie, selectedShowtime }: Props) {
             * Seat selection can be done after this
           </div>
 
-           <button className='w-full bg-royal-blue text-sunshine-yellow font-bold text-2xl py-4 rounded-xl hover:bg-royal-blue-hover transition-all cursor-pointer uppercase tracking-wide mt-9'>
-            Buy Now
-          </button>
+          <Link href={`/booking/${movieId}/seats`} className='w-full'>
+            <button className='w-full bg-royal-blue text-sunshine-yellow font-bold text-2xl py-4 rounded-xl hover:bg-royal-blue-hover transition-all cursor-pointer uppercase tracking-wide mt-9'>
+              Buy Now
+            </button>
+          </Link>
         </div>
       )}
     </div>

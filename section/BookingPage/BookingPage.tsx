@@ -4,9 +4,9 @@ import Bookshow from './Bookshow'
 import ShowDetails from './ShowDetails'
 import { useParams } from 'next/navigation'
 import { getMovie } from '@/actions/movieActions'
-import { Movie, ShowtimeWithTheaterAndScreen, } from '@/types'
+import { Movie, ShowtimeForBooking } from '@/types'
 import { useAppDispatch } from '@/lib/hooks'
-import { setSelectedMovie } from '@/lib/features/booking/bookingSlice'
+import { setSelectedMovie, setSelectedShowtime as setShowtimeRedux, setSelectedDate as setDateRedux } from '@/lib/features/booking/bookingSlice'
 
 export default function BookingPage() {
   const params = useParams()
@@ -15,7 +15,7 @@ export default function BookingPage() {
 
   const [movie, setMovie] = useState<Movie | null>(null)
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-  const [selectedShowtime, setSelectedShowtime] = useState<ShowtimeWithTheaterAndScreen | null>(null)
+  const [selectedShowtime, setSelectedShowtime] = useState<ShowtimeForBooking | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -52,9 +52,12 @@ export default function BookingPage() {
           onDateSelect={(date) => {
             setSelectedDate(date)
             setSelectedShowtime(null)
+            dispatch(setDateRedux(date.toISOString()))
           }}
-          onShowtimeSelect={(showtime) => setSelectedShowtime(showtime)}
-        />
+          onShowtimeSelect={(showtime) => {
+            setSelectedShowtime(showtime)
+            dispatch(setShowtimeRedux(showtime))         
+          }} />
       </div>
 
       <div className='order-1 md:order-2 col-span-1 mx-auto w-full'>

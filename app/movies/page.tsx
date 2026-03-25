@@ -20,7 +20,7 @@ export default function Movies() {
 		fetchMovies()
 	}, [])
 	return (
-		<div className="w-full px-16">
+		<div className="w-full px-8 md:px-16">
 			<div className="flex justify-between">
 				<div>
 					<div className="text-2xl sm:text-4xl font-bold py-2 text-shade-900">
@@ -50,14 +50,14 @@ export default function Movies() {
 					</div>
 				) :
 					(
-						<div className="w-full mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 lg:gap-12 justify-items-center">							{movies.map((movie) => {
+						<div className="w-full mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 justify-items-center">							{movies.map((movie) => {
 							return (
 								<Link key={movie.id} href={`/booking/${movie.id}`}>
 									<div className='flex flex-col gap-2 md:gap-4 max-w-90'>
 										<div className='w-full'>
-											<div className='relative rounded-2xl'>
+											<div className='max-w-90 max-h-127 relative rounded-2xl'>
 												<Image
-													className='aspect-3/4 rounded-2xl w-full'
+													className='aspect-3/4 rounded-2xl object-fit'
 													src={movie.movie_img ?? '/placeholder.jpg'}
 													alt={movie.name ?? 'Movie'}
 													width={360}

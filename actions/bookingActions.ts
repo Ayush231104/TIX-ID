@@ -42,42 +42,43 @@ export async function getShowtimes(movieId: string, date?: string) {
 
 // get seats with their status for a showtime
 export async function getSeatsWithStatus(screenId: string, showtimeId: string) {
-  const supabase = await createClient();
+  const supabase = await createClient()
 
-  // get all seats for screen
   const { data: seats, error: seatsError } = await supabase
     .from('seats')
     .select('*')
     .eq('screen_id', screenId)
-    .order('seat_row', { ascending: true });
+    .order('seat_row', { ascending: true })
 
-  if (seatsError) return { success: false, error: seatsError.message };
+  if (seatsError) return { success: false, error: seatsError.message }
 
-  // get locked seats
   const { data: lockedSeats } = await supabase
     .from('seat_locked')
-    .select('seat_id')
+    .select('seat_id, user_id')       // ✅ fetch user_id too
     .eq('showtime_id', showtimeId)
     .eq('reservation_status', 'hold')
-    .gt('expires_at', new Date().toISOString());
+    .gt('expires_at', new Date().toISOString())
 
-  // get booked seats
   const { data: bookedSeats } = await supabase
     .from('booking_seats')
     .select('seat_id')
     .eq('showtime_id', showtimeId)
-    .eq('booking_seat_status', 'confirmed');
+    .eq('booking_seat_status', 'confirmed')
 
-  const lockedIds = new Set(lockedSeats?.map((s) => s.seat_id) ?? []);
-  const bookedIds = new Set(bookedSeats?.map((s) => s.seat_id) ?? []);
+  // map seat_id → user_id for locked seats
+  const lockedMap = new Map(
+    lockedSeats?.map((s) => [s.seat_id, s.user_id]) ?? []
+  )
+  const bookedIds = new Set(bookedSeats?.map((s) => s.seat_id) ?? [])
 
   const seatsWithStatus = seats?.map((seat) => ({
     ...seat,
-    is_locked: lockedIds.has(seat.id),
+    is_locked: lockedMap.has(seat.id),
     is_booked: bookedIds.has(seat.id),
-  }));
+    locked_by_user_id: lockedMap.get(seat.id) ?? null,  // ✅
+  }))
 
-  return { success: true, data: seatsWithStatus };
+  return { success: true, data: seatsWithStatus }
 }
 
 // lock seats temporarily
