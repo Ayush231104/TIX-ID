@@ -5,6 +5,7 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import GlobalLayout from "@/layout/GlobalLayout";
 import StoreProvider from "@/components/StoreProvider";
+import { Toaster } from "react-hot-toast";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
@@ -29,9 +30,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`font-sans ${inter.variable}`}>
       <body
+        suppressHydrationWarning
         className={`${roboto.variable} antialiased max-w-400 m-auto`}
       >
         <StoreProvider>
+          <Toaster position="bottom-right"/>
           <GlobalLayout>
             {children}
           </GlobalLayout>

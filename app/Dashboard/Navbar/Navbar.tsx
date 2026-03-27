@@ -80,7 +80,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-6 lg:gap-10">
             <Link href="/" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Home</Link>
             <Link href="/movies" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Movies</Link>
-            <Link href="/tickets" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Tiket Saya</Link>
+            <Link href="/tickets" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">My Tickets</Link>
             <Link href="/news" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">TIX ID News</Link>
             <IoMdNotificationsOutline className="text-2xl " />
 
@@ -112,7 +112,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-6 lg:gap-10">
             <Link href="/" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Home</Link>
             <Link href="/movies" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Movies</Link>
-            <Link href="/tickets" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Tiket Saya</Link>
+            <Link href="/tickets" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">My Tickets</Link>
             <Link href="/news" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">TIX ID News</Link>
             <div className="w-0.5 h-6 bg-shade-400">
             </div>

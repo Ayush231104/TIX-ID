@@ -3,9 +3,10 @@
 import Skeleton from '@/components/ui/Skeleton'
 import { Brand, City, Screen, ShowtimeForBooking, Theater } from '@/types'
 import { createClient } from '@/utils/supabase/client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ImStarFull } from 'react-icons/im'
 import { SortOption } from './Bookshow'
+import { useGetShowtimesQuery } from '@/lib/features/api/bookingApi'
 
 type LeanShowtime = {
 	id: string
@@ -77,185 +78,258 @@ export default function ShowtimeSection({
 	sortBy: SortOption | null
 	userLocation: { lat: number; lng: number } | null
 }) {
-	const [allGrouped, setAllGrouped] = useState<TheaterGroup[]>([])
-	const [grouped, setGrouped] = useState<TheaterGroup[]>([])
 	const [selectedId, setSelectedId] = useState<string | null>(null)
-	const [loading, setLoading] = useState(true)
 
-	useEffect(() => {
-		const fetchData = async () => {
-			setLoading(true)
+	const { data: rawShowtimes = [], isLoading } = useGetShowtimesQuery({
+        movieId,
+        date: selectedDate.toISOString()
+    }, { skip: !movieId })
 
-			const start = new Date(selectedDate)
-			start.setHours(0, 0, 0, 0)
+	const allGrouped = useMemo(() => {
+        const theaterMap = new Map<string, TheaterGroup>()
 
-			const end = new Date(selectedDate)
-			end.setHours(23, 59, 59, 999)
+        for (const row of rawShowtimes) {
+            const theaterId = row.theater_id as string
+            const screenId = row.screen_id as string
 
+            if (!theaterMap.has(theaterId)) {
+                theaterMap.set(theaterId, {
+                    theater: row.theater as unknown as Theater & { brands: Brand | null; cities: City | null },
+                    screens: [],
+                })
+            }
 
-			//don't select every thing just fetch what you want to use
-			// const { data, error } = await supabase
-			// 	.from('showtimes')
-			// 	.select(`
-			// 		*,
-			// 		theater:theater_id(
-			// 		*,
-			// 		brands:brand_id(*),
-			// 		cities:city_id(*)
-			// 		),	
-			// 		screen:screen_id(*)
-			// 	`)
-			// 	.eq('movie_id', movieId)
-			// 	.eq('is_active', true)
-			// 	.gte('show_time', start.toISOString())
-			// 	.lte('show_time', end.toISOString())
-			// 	.order('show_time', { ascending: true })
-			const { data, error } = await supabase
-				.from('showtimes')
-				.select(`
-					id,
-					show_time,
-					price,
-					is_active,
-					movie_id,
-					theater_id,
-					screen_id,
-					created_at,
-					updated_at,
-					theater:theater_id(
-					id,
-					name,
-					address,
-					brand_id,
-					city_id,
-					latitude,
-					longitude,
-					brands:brand_id(id, name, logo_url),
-					cities:city_id(id, name, latitude, longitude)
-					),
-					screen:screen_id(
-					id,
-					name,
-					type
-					)
-				`)
-				.eq('movie_id', movieId)
-				.eq('is_active', true)
-				.gte('show_time', start.toISOString())
-				.lte('show_time', end.toISOString())
-				.order('show_time', { ascending: true })
+            const theaterGroup = theaterMap.get(theaterId)!
+            let screenGroup = theaterGroup.screens.find((s) => s.screen.id === screenId)
 
-			if (error) {
-				console.error('Error fetching showtimes:', error.message)
-				setLoading(false)
-				return
-			}
+            if (!screenGroup) {
+                screenGroup = { screen: row.screen as unknown as Screen, showtimes: [] }
+                theaterGroup.screens.push(screenGroup)
+            }
 
-			const theaterMap = new Map<string, TheaterGroup>()
+            screenGroup.showtimes.push({
+                id: row.id,
+                show_time: row.show_time,
+                price: row.price,
+                movie_id: row.movie_id,
+                theater_id: row.theater_id,
+                screen_id: row.screen_id,
+                is_active: row.is_active,
+                created_at: row.created_at,
+                updated_at: row.updated_at,
+            })
+        }
 
-			for (const row of (data ?? []) as ShowtimeForBooking[]) {
-				const theaterId = row.theater_id as string
-				const screenId = row.screen_id as string
+        return Array.from(theaterMap.values())
+    }, [rawShowtimes])
 
-				if (!theaterMap.has(theaterId)) {
-					theaterMap.set(theaterId, {
-						theater: row.theater as Theater & { brands: Brand | null; cities: City | null },
-						screens: [],
-					})
-				}
+	// useEffect(() => {
+	// 	const fetchData = async () => {
+	// 		setLoading(true)
 
-				const theaterGroup = theaterMap.get(theaterId)!
+	// 		const start = new Date(selectedDate)
+	// 		start.setHours(0, 0, 0, 0)
 
-				let screenGroup = theaterGroup.screens.find((s) => s.screen.id === screenId)
+	// 		const end = new Date(selectedDate)
+	// 		end.setHours(23, 59, 59, 999)
+	// 		const { data, error } = await supabase
+	// 			.from('showtimes')
+	// 			.select(`
+	// 				id,
+	// 				show_time,
+	// 				price,
+	// 				is_active,
+	// 				movie_id,
+	// 				theater_id,
+	// 				screen_id,
+	// 				created_at,
+	// 				updated_at,
+	// 				theater:theater_id(
+	// 				id,
+	// 				name,
+	// 				address,
+	// 				brand_id,
+	// 				city_id,
+	// 				latitude,
+	// 				longitude,
+	// 				brands:brand_id(id, name, logo_url),
+	// 				cities:city_id(id, name, latitude, longitude)
+	// 				),
+	// 				screen:screen_id(
+	// 				id,
+	// 				name,
+	// 				type
+	// 				)
+	// 			`)
+	// 			.eq('movie_id', movieId)
+	// 			.eq('is_active', true)
+	// 			.gte('show_time', start.toISOString())
+	// 			.lte('show_time', end.toISOString())
+	// 			.order('show_time', { ascending: true })
 
-				if (!screenGroup) {
-					screenGroup = { screen: row.screen as Screen, showtimes: [] }
-					theaterGroup.screens.push(screenGroup)
-				}
+	// 		if (error) {
+	// 			console.error('Error fetching showtimes:', error.message)
+	// 			setLoading(false)
+	// 			return
+	// 		}
 
-				screenGroup.showtimes.push({
-					id: row.id,
-					show_time: row.show_time,
-					price: row.price,
-					movie_id: row.movie_id,
-					theater_id: row.theater_id,
-					screen_id: row.screen_id,
-					is_active: row.is_active,
-					created_at: row.created_at,
-					updated_at: row.updated_at,
-				})
-			}
+	// 		const theaterMap = new Map<string, TheaterGroup>()
 
-			setAllGrouped(Array.from(theaterMap.values()))
-			setLoading(false)
-		}
-		// console.log(allGrouped)
-		if (!movieId) return
-		fetchData()
-	}, [movieId, selectedDate])
+	// 		for (const row of (data ?? []) as ShowtimeForBooking[]) {
+	// 			const theaterId = row.theater_id as string
+	// 			const screenId = row.screen_id as string
 
-	useEffect(() => {
+	// 			if (!theaterMap.has(theaterId)) {
+	// 				theaterMap.set(theaterId, {
+	// 					theater: row.theater as Theater & { brands: Brand | null; cities: City | null },
+	// 					screens: [],
+	// 				})
+	// 			}
 
-		const applyFilters = (source: TheaterGroup[]) => {
-			let result = source
+	// 			const theaterGroup = theaterMap.get(theaterId)!
 
-			if (cityId) {
-				result = result.filter((g) => g.theater.cities?.id === cityId)
-			}
+	// 			let screenGroup = theaterGroup.screens.find((s) => s.screen.id === screenId)
 
-			if (searchText.trim()) {
-				result = result.filter((g) =>
-					g.theater.name.toLowerCase().includes(searchText.trim().toLowerCase())
-				)
-			}
+	// 			if (!screenGroup) {
+	// 				screenGroup = { screen: row.screen as Screen, showtimes: [] }
+	// 				theaterGroup.screens.push(screenGroup)
+	// 			}
 
-			if (screenType) {
-				result = result
-					.map((g) => ({
-						...g,
-						screens: g.screens.filter((s) => s.screen.name === screenType),
-					}))
-					.filter((g) => g.screens.length > 0)
-			}
+	// 			screenGroup.showtimes.push({
+	// 				id: row.id,
+	// 				show_time: row.show_time,
+	// 				price: row.price,
+	// 				movie_id: row.movie_id,
+	// 				theater_id: row.theater_id,
+	// 				screen_id: row.screen_id,
+	// 				is_active: row.is_active,
+	// 				created_at: row.created_at,
+	// 				updated_at: row.updated_at,
+	// 			})
+	// 		}
 
-			if (brandId) {
-				result = result.filter((g) => g.theater.brands?.id === brandId)
-			}
+	// 		setAllGrouped(Array.from(theaterMap.values()))
+	// 		setLoading(false)
+	// 	}
+	// 	// console.log(allGrouped)
+	// 	if (!movieId) return
+	// 	fetchData()
+	// }, [movieId, selectedDate])
 
-			if (sortBy === 'cheapest') {
-				result = [...result].sort((a, b) => {
-					const minA = Math.min(...a.screens.flatMap((s) => s.showtimes.map((t) => t.price ?? Infinity)))
-					const minB = Math.min(...b.screens.flatMap((s) => s.showtimes.map((t) => t.price ?? Infinity)))
-					return minA - minB
-				})
-			} else if (sortBy === 'alphabet') {
-				result = [...result].sort((a, b) =>
-					a.theater.name.localeCompare(b.theater.name)
-				)
-			} else if (sortBy === 'nearest' && userLocation) {
-				result = [...result].sort((a, b) => {
-					// Use theater coords first, fall back to city coords
-					const latA = a.theater.latitude ?? a.theater.cities?.latitude
-					const lngA = a.theater.longitude ?? a.theater.cities?.longitude
-					const latB = b.theater.latitude ?? b.theater.cities?.latitude
-					const lngB = b.theater.longitude ?? b.theater.cities?.longitude
+	// useEffect(() => {
 
-					const distA = latA && lngA
-						? getDistance(userLocation.lat, userLocation.lng, latA, lngA)
-						: Infinity
-					const distB = latB && lngB
-						? getDistance(userLocation.lat, userLocation.lng, latB, lngB)
-						: Infinity
+	// 	const applyFilters = (source: TheaterGroup[]) => {
+	// 		let result = source
 
-					return distA - distB
-				})
-			}
+	// 		if (cityId) {
+	// 			result = result.filter((g) => g.theater.cities?.id === cityId)
+	// 		}
 
-			setGrouped(result)
-		}
-		applyFilters(allGrouped)
-	}, [allGrouped, cityId, searchText, screenType, brandId, sortBy, userLocation])
+	// 		if (searchText.trim()) {
+	// 			result = result.filter((g) =>
+	// 				g.theater.name.toLowerCase().includes(searchText.trim().toLowerCase())
+	// 			)
+	// 		}
 
+	// 		if (screenType) {
+	// 			result = result
+	// 				.map((g) => ({
+	// 					...g,
+	// 					screens: g.screens.filter((s) => s.screen.name === screenType),
+	// 				}))
+	// 				.filter((g) => g.screens.length > 0)
+	// 		}
+
+	// 		if (brandId) {
+	// 			result = result.filter((g) => g.theater.brands?.id === brandId)
+	// 		}
+
+	// 		if (sortBy === 'cheapest') {
+	// 			result = [...result].sort((a, b) => {
+	// 				const minA = Math.min(...a.screens.flatMap((s) => s.showtimes.map((t) => t.price ?? Infinity)))
+	// 				const minB = Math.min(...b.screens.flatMap((s) => s.showtimes.map((t) => t.price ?? Infinity)))
+	// 				return minA - minB
+	// 			})
+	// 		} else if (sortBy === 'alphabet') {
+	// 			result = [...result].sort((a, b) =>
+	// 				a.theater.name.localeCompare(b.theater.name)
+	// 			)
+	// 		} else if (sortBy === 'nearest' && userLocation) {
+	// 			result = [...result].sort((a, b) => {
+	// 				// Use theater coords first, fall back to city coords
+	// 				const latA = a.theater.latitude ?? a.theater.cities?.latitude
+	// 				const lngA = a.theater.longitude ?? a.theater.cities?.longitude
+	// 				const latB = b.theater.latitude ?? b.theater.cities?.latitude
+	// 				const lngB = b.theater.longitude ?? b.theater.cities?.longitude
+
+	// 				const distA = latA && lngA
+	// 					? getDistance(userLocation.lat, userLocation.lng, latA, lngA)
+	// 					: Infinity
+	// 				const distB = latB && lngB
+	// 					? getDistance(userLocation.lat, userLocation.lng, latB, lngB)
+	// 					: Infinity
+
+	// 				return distA - distB
+	// 			})
+	// 		}
+
+	// 		setGrouped(result)
+	// 	}
+	// 	applyFilters(allGrouped)
+	// }, [allGrouped, cityId, searchText, screenType, brandId, sortBy, userLocation])
+
+	const grouped = useMemo(() => {
+        let result = allGrouped
+
+        if (cityId) {
+            result = result.filter((g) => g.theater.cities?.id === cityId)
+        }
+
+        if (searchText.trim()) {
+            result = result.filter((g) =>
+                g.theater.name.toLowerCase().includes(searchText.trim().toLowerCase())
+            )
+        }
+
+        if (screenType) {
+            result = result
+                .map((g) => ({
+                    ...g,
+                    screens: g.screens.filter((s) => s.screen.name === screenType),
+                }))
+                .filter((g) => g.screens.length > 0)
+        }
+
+        if (brandId) {
+            result = result.filter((g) => g.theater.brands?.id === brandId)
+        }
+
+        if (sortBy === 'cheapest') {
+            result = [...result].sort((a, b) => {
+                const minA = Math.min(...a.screens.flatMap((s) => s.showtimes.map((t) => t.price ?? Infinity)))
+                const minB = Math.min(...b.screens.flatMap((s) => s.showtimes.map((t) => t.price ?? Infinity)))
+                return minA - minB
+            })
+        } else if (sortBy === 'alphabet') {
+            result = [...result].sort((a, b) =>
+                a.theater.name.localeCompare(b.theater.name)
+            )
+        } else if (sortBy === 'nearest' && userLocation) {
+            result = [...result].sort((a, b) => {
+                const latA = a.theater.latitude ?? a.theater.cities?.latitude
+                const lngA = a.theater.longitude ?? a.theater.cities?.longitude
+                const latB = b.theater.latitude ?? b.theater.cities?.latitude
+                const lngB = b.theater.longitude ?? b.theater.cities?.longitude
+
+                const distA = latA && lngA ? getDistance(userLocation.lat, userLocation.lng, latA, lngA) : Infinity
+                const distB = latB && lngB ? getDistance(userLocation.lat, userLocation.lng, latB, lngB) : Infinity
+
+                return distA - distB
+            })
+        }
+
+        return result
+    }, [allGrouped, cityId, searchText, screenType, brandId, sortBy, userLocation])
 
 	const getPriceRange = (showtimes: LeanShowtime[]) => {
 		const prices = showtimes
@@ -269,14 +343,14 @@ export default function ShowtimeSection({
 			: `${formatPrice(min)} - ${formatPrice(max)}`
 	}
 
-	if (loading) {
+	if (isLoading) {
 		return (
-			<div className='mt-6 flex flex-col gap-4'>
-				{[1, 2].map((i) => (
-					<Skeleton key={i} w='w-full' h='h-20' rounded='rounded-xl' />
-				))}
-			</div>
-		)
+            <div className='mt-6 flex flex-col gap-4'>
+                {[1, 2].map((i) => (
+                    <Skeleton key={i} w='w-full' h='h-20' rounded='rounded-xl' />
+                ))}
+            </div>
+        )
 	}
 
 	if (grouped.length === 0) {
@@ -364,7 +438,7 @@ export default function ShowtimeSection({
 													? 'bg-shade-200 border-shade-200 text-shade-400 cursor-not-allowed'
 													: isSelected
 														? 'bg-royal-blue border-royal-blue text-white'
-														: 'bg-white border-shade-600 text-shade-900 hover:bg-royal-blue-hover hover:text-white hover:border-royal-blue-hover cursor-pointer'
+														: 'bg-white border-shade-600 text-shade-900 hover:bg-royal-blue-hover hover:text-white hover:border-royal-blue-hover active:bg-royal-blue-while-pressed active:text-shade-200 cursor-pointer'
 												}
                       						`}
 										>

@@ -2,10 +2,20 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
-import type { GenreType, MovieInsert, MovieStatus, MovieUpdate } from '@/types/index';
+import type { GenreType, Movie, MovieInsert, MovieStatus, MovieUpdate } from '@/types/index';
 
 // get all movies with optional filters
-export async function getMovies(status?: MovieStatus, genre?: GenreType) {
+export async function getMoviesListAction({
+  limit,
+  status,
+  genre,
+  searchQuery
+}: {
+  limit?: number;
+  status?: MovieStatus | 'upcoming'; // Accommodate your 'upcoming' string
+  genre?: GenreType;
+  searchQuery?: string;
+} = {}) {
   const supabase = await createClient();
 
   let query = supabase
@@ -15,11 +25,13 @@ export async function getMovies(status?: MovieStatus, genre?: GenreType) {
 
   if (status) query = query.eq('movies_status', status);
   if (genre) query = query.eq('genre', genre);
+  if (searchQuery) query = query.ilike('name', `%${searchQuery}%`);
+  if (limit) query = query.limit(limit);
 
   const { data, error } = await query;
 
-  if (error) return { success: false, error: error.message };
-  return { success: true, data };
+  if (error) return { success: false, error: error.message, data: null };
+  return { success: true, data: data as Movie[], error: null };
 }
 
 // get single movie
@@ -91,31 +103,19 @@ export async function deleteMovieAction(id: string) {
   return { success: true };
 }
 
-export async function upcomingMovies() {
+export async function upcomingMovies({limit = 3}: {limit?: number}) {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('movies')
     .select('*')
     .eq('movies_status', 'upcoming')
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false });
+  
+  if (limit) query = query.limit(limit);
+
+  const { data, error } = await query;
 
   if (error) return { success: false, error: error.message };
-  return { success: true, data };
-
-}
-
-export async function upcomingHeroMovies() {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from('movies')
-    .select('*')
-    .eq('movies_status', 'upcoming')
-    .order('created_at', { ascending: false })
-    .limit(3);
-
-  if (error) return { success: false, error: error.message };
-  return { success: true, data };
-
+  return { success: true, data }; 
 }

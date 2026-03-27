@@ -1,24 +1,12 @@
 'use client'
-import { getMovies } from "@/actions/movieActions"
 import Skeleton from "@/components/ui/Skeleton"
-import { Movie } from "@/types"
+import { useGetMoviesListQuery } from "@/lib/features/api/moviesApi"
 import Image from "next/image"
 import Link from "next/link"
-import { useEffect, useState } from "react"
 
 export default function Movies() {
-	const [movies, setmovies] = useState<Movie[]>([])
-	const [loading, setLoading] = useState(true)
+	const { data: movies = [], isLoading } = useGetMoviesListQuery({});
 
-	useEffect(() => {
-		const fetchMovies = async () => {
-			const result = await getMovies()
-			if (result.success && result.data) setmovies(result.data)
-			else console.error('Error fetching upcoming movies: ', result.error)
-			setLoading(false)
-		}
-		fetchMovies()
-	}, [])
 	return (
 		<div className="w-full px-8 md:px-16">
 			<div className="flex justify-between">
@@ -29,8 +17,8 @@ export default function Movies() {
 					<div className='text-[16px] leading-6 text-shade-600 '>Enjoy movies with friends on the big screen</div>
 				</div>
 			</div>
-			{loading ? (
-				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-12 overflow-hidden w-full">
+			{isLoading ? (
+				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-12 overflow-hidden w-full">
 					{[...Array(7)].map((_, i) => (
 						<div key={i} className="flex flex-col items-center gap-4 w-full">
 							<Skeleton w="w-full" h="h-125" rounded="rounded-2xl" />

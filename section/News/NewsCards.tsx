@@ -1,42 +1,19 @@
 'use client'
 
-import { createClient } from '@/utils/supabase/client';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import type { NewsCard } from '@/types/index';
 import Skeleton from '@/components/ui/Skeleton';
-
-const supabase = createClient();
+import { useGetNewsQuery } from '@/lib/features/api/newsApi';
 
 export default function NewsCards() {
-  const [news, setNews] = useState<NewsCard[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchNews = async () => {
-      const { data, error } = await supabase
-        .from('news')
-        .select('*')
-        .limit(3);
-
-      if (error) {
-        console.error(error.message);
-      } else {
-        setNews((data as NewsCard[]) || []);
-      }
-      setLoading(false);
-    };
-
-    fetchNews();
-  }, []);
+  const { data : news = [], isLoading, isError} = useGetNewsQuery({ limit: 3});
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
-      {loading
-        ? (<div>
-          {
-            [...Array(3)].map((_, i) => (
+      {isLoading
+        ? (
+        <div>
+          {[...Array(3)].map((_, i) => (
               <div key={i} className="w-full flex flex-col gap-4">
                 <Skeleton w="w-full" h="h-60" rounded="rounded-xl" />
 
@@ -51,8 +28,9 @@ export default function NewsCards() {
               </div>
             ))
           }
-        </div>)
-        : news.length === 0
+        </div>
+        )
+        : isError
           ? (<div className="flex justify-center items-center h-96">
             <p className="text-gray-500 text-lg">No news found</p>
           </div>)

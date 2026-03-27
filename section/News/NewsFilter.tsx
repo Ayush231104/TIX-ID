@@ -1,20 +1,20 @@
 'use client';
 
 import { useEffect, useRef, useState } from "react";
-import { CiSearch } from "react-icons/ci";
-import { FaCaretDown, FaCaretUp } from "react-icons/fa";
-import { FiCheck } from "react-icons/fi";
-import { createClient } from "@/utils/supabase/client";
 import Image from "next/image";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { setSearchQuery, toggleCategory } from "@/lib/features/slice/newsSlice";
 import Link from "next/link";
-import type { NewsCard } from "@/types/index";
-
-const supabase = createClient();
+import { FiCheck } from "react-icons/fi";
+import { FaCaretDown, FaCaretUp } from "react-icons/fa";
+import { CiSearch } from "react-icons/ci";
+import { useGetNewsQuery } from "@/lib/features/api/newsApi";
+import Skeleton from "@/components/ui/Skeleton";
 
 export default function NewsFilter() {
-  const [news, setNews] = useState<NewsCard[]>([]);
-  const [search, setSearch] = useState("");
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const dispatch = useAppDispatch();
+  const search = useAppSelector((state) => state.news.searchQuery)
+  const selectedCategories = useAppSelector((state) => state.news.selectedCategories)
   const [isOpen, setIsOpen] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -30,42 +30,7 @@ export default function NewsFilter() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    const getNews = async () => {
-      let query = supabase
-        .from("news")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (search) {
-        query = query.ilike("title", `%${search}%`);
-      }
-
-      if (selectedCategories.length > 0) {
-        query = query.in("category", selectedCategories);
-      }
-
-      const { data, error } = await query;
-
-      if (!error && data) {
-        setNews(data as NewsCard[]);
-      }
-    };
-
-    const timeout = setTimeout(() => {
-      getNews();
-    }, 400);
-
-    return () => clearTimeout(timeout);
-  }, [search, selectedCategories]);
-
-  const toggleCategory = (option: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(option)
-        ? prev.filter((item) => item !== option)
-        : [...prev, option]
-    );
-  };
+  const { data: news = [], isLoading, isError } = useGetNewsQuery({ searchQuery: search, categories: selectedCategories });
 
   return (
     <div>
@@ -83,7 +48,7 @@ export default function NewsFilter() {
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => dispatch(setSearchQuery(e.target.value))}
             className="w-full px-4 py-3 border rounded-lg border-shade-300 focus:outline-none"
             placeholder="Search Post"
           />
@@ -93,9 +58,8 @@ export default function NewsFilter() {
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`flex items-center gap-3 text-[16px] font-normal text-gray-800 transition-opacity ${
-              isOpen ? "opacity-0 pointer-events-none" : "opacity-100"
-            }`}
+            className={`flex items-center gap-3 text-[16px] font-normal text-gray-800 transition-opacity ${isOpen ? "opacity-0 pointer-events-none" : "opacity-100"
+              }`}
           >
             Sort
             <FaCaretDown className="text-sm" />
@@ -117,7 +81,7 @@ export default function NewsFilter() {
                   return (
                     <button
                       key={option}
-                      onClick={() => toggleCategory(option)}
+                      onClick={() => dispatch(toggleCategory(option))}
                       className="w-full flex items-center justify-between px-4 py-2.5 text-[14px] transition cursor-pointer text-gray-900 hover:bg-shade-200"
                     >
                       <span>{option}</span>
@@ -133,63 +97,115 @@ export default function NewsFilter() {
         </div>
       </div>
 
-      {/* Tags Row */}
-      <div className="flex flex-wrap gap-4 mb-16.5">
-        {news.map((item) => (
-          <button
-            key={item.id}
-            className="px-5 py-3 border border-shade-500 rounded-[23px] text-[16px] text-shade-500 hover:text-shade-800 hover:border-shade-800 transition"
-          >
-            {item.tag}
-          </button>
-        ))}
-      </div>
+      {/* ── LOADING & ERROR & DATA RENDERING ── */}
+      {isLoading ? (
+        <>
+          {/* Skeleton for Tags */}
+          <div className="flex flex-wrap gap-4 mb-16.5">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} w="w-24" h="h-12" rounded="rounded-[23px]" />
+            ))}
+          </div>
 
-      {/* Alternating News Layout */}
-      <div className="flex flex-col gap-15 lg:gap-26 mb-20">
-        {news.map((item, index) => {
-          const isEven = index % 2 === 0;
-          return (
-            <Link href={`news/${item.id}`} key={item.id}>
-              <div
-                className={`flex flex-col gap-10 lg:gap-16 items-center ${
-                  isEven ? "lg:flex-row" : "lg:flex-row-reverse"
-                }`}
-              >
-                <div className="w-full lg:w-1/2 h-100 lg:h-102.5 relative">
-                  <Image
-                    src={item.img}
-                    alt={item.title}
-                    fill
-                    className="object-cover rounded-xl"
-                    priority={index < 2}
-                  />
-                </div>
-
-                <div className="w-full lg:w-1/2 flex flex-col items-start px-2">
-                  <div className="border border-shade-800 px-5 py-3.5 text-xl leading-5 font-normal mb-2 sm:mb-6">
-                    {item.category}
+          {/* Skeleton for Alternating News Layout */}
+          <div className="flex flex-col gap-15 lg:gap-26 mb-20">
+            {[...Array(3)].map((_, index) => {
+              const isEven = index % 2 === 0;
+              return (
+                <div
+                  key={index}
+                  className={`flex flex-col gap-10 lg:gap-16 items-center ${isEven ? "lg:flex-row" : "lg:flex-row-reverse"
+                    }`}
+                >
+                  {/* Image Skeleton */}
+                  <div className="w-full lg:w-1/2 h-100 lg:h-102.5 relative">
+                    <Skeleton w="w-full" h="h-full" rounded="rounded-xl" />
                   </div>
-                  <h2 className="lg:w-lg text-3xl sm:text-[40px] font-medium leading-7 sm:leading-12.5 text-shade-900 mb-4">
-                    {item.title}
-                  </h2>
-                  <p className="lg:w-lg text-[16px] font-normal leading-5 sm:leading-6 text-shade-600 mb-5">
-                    {item.subtitle}
-                  </p>
-                  <p className="text-xl sm:text-[24px] font-normal leading-6 text-shade-700 sm:mt-5">
-                    {new Date(item.release_date).toLocaleDateString("id-ID", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}{" "}
-                    | TIX ID
-                  </p>
+
+                  {/* Text Skeleton */}
+                  <div className="w-full lg:w-1/2 flex flex-col items-start px-2">
+                    <Skeleton w="w-28" h="h-12" className="mb-2 sm:mb-6" />
+                    
+                    <Skeleton w="w-full lg:w-lg" h="h-10" className="mb-2" />
+                    <Skeleton w="w-3/4 lg:w-96" h="h-10" className="mb-4" />
+                    
+                    <Skeleton w="w-full lg:w-lg" h="h-6" className="mb-2" />
+                    <Skeleton w="w-5/6 lg:w-80" h="h-6" className="mb-5" />
+                    
+                    <Skeleton w="w-48" h="h-8" className="sm:mt-5" />
+                  </div>
                 </div>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        </>
+      ) : isError ? (
+        <div className="flex justify-center items-center h-96">
+          <p className="text-red-500 text-lg">Failed to load news.</p>
+        </div>
+      ) : news.length === 0 ? (
+        <div className="flex justify-center items-center h-96">
+          <p className="text-gray-500 text-lg">No news found matching your criteria.</p>
+        </div>
+      ) : (
+        <>
+          {/* Tags Row */}
+          <div className="flex flex-wrap gap-4 mb-16.5">
+            {news.map((item) => (
+              <button
+                key={item.id}
+                className="px-5 py-3 border border-shade-500 rounded-[23px] text-[16px] text-shade-500 hover:text-shade-800 hover:border-shade-800 transition"
+              >
+                {item.tag}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-15 lg:gap-26 mb-20">
+            {news.map((item, index) => {
+              const isEven = index % 2 === 0;
+              return (
+                <Link href={`news/${item.id}`} key={item.id}>
+                  <div
+                    className={`flex flex-col gap-10 lg:gap-16 items-center ${isEven ? "lg:flex-row" : "lg:flex-row-reverse"
+                      }`}
+                  >
+                    <div className="w-full lg:w-1/2 h-100 lg:h-102.5 relative">
+                      <Image
+                        src={item.img}
+                        alt={item.title}
+                        fill
+                        className="object-cover rounded-xl"
+                        priority={index < 2}
+                      />
+                    </div>
+
+                    <div className="w-full lg:w-1/2 flex flex-col items-start px-2">
+                      <div className="border border-shade-800 px-5 py-3.5 text-xl leading-5 font-normal mb-2 sm:mb-6">
+                        {item.category}
+                      </div>
+                      <h2 className="lg:w-lg text-3xl sm:text-[40px] font-medium leading-7 sm:leading-12.5 text-shade-900 mb-4">
+                        {item.title}
+                      </h2>
+                      <p className="lg:w-lg text-[16px] font-normal leading-5 sm:leading-6 text-shade-600 mb-5">
+                        {item.subtitle}
+                      </p>
+                      <p className="text-xl sm:text-[24px] font-normal leading-6 text-shade-700 sm:mt-5">
+                        {new Date(item.release_date).toLocaleDateString("id-ID", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}{" "}
+                        | TIX ID
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }

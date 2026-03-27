@@ -99,7 +99,7 @@ export default function ShowDetails({ movie, selectedShowtime }: Props) {
           </div>
 
           <Link href={`/booking/${movieId}/seats`} className='w-full'>
-            <button className='w-full bg-royal-blue text-sunshine-yellow font-bold text-2xl py-4 rounded-xl hover:bg-royal-blue-hover transition-all cursor-pointer uppercase tracking-wide mt-9'>
+            <button className='w-full bg-royal-blue text-sunshine-yellow font-bold text-xl sm:text-2xl py-2 sm:py-4 rounded-xl hover:bg-royal-blue-hover transition-all cursor-pointer uppercase tracking-wide mt-9'>
               Buy Now
             </button>
           </Link>

@@ -61,17 +61,15 @@ export default function ShowtimeDropdown(
 		<div ref={ref} className="relative">
 
 			<button
-				onClick={() => setIsOpen(!isOpen)}
+				onClick={() => setIsOpen(true)}
 				className='flex justify-center items-center gap-2 cursor-pointer'
 			>
 				<span className='text-shade-900 text-lg'><MdOutlineWatchLater size={20} /></span>
 				<span className='font-medium text-2xl leading-8 text-shade-900'>
 					{formatTime(selectedShowtime?.show_time)}
 				</span>
-				{isOpen
-					? <IoIosArrowUp className='text-shade-900 text-xl' />
-					: <IoIosArrowDown className='text-shade-900 text-xl' />
-				}
+				<IoIosArrowDown className='text-shade-900 text-xl' />
+
 			</button>
 
 			{isOpen && (
@@ -80,7 +78,7 @@ export default function ShowtimeDropdown(
 					{/* Panel header */}
 					<button
 						onClick={() => setIsOpen(false)}
-						className='flex items-center gap-2 cursor-pointer'
+						className='flex items-center justify-center gap-2 cursor-pointer'
 					>
 						<span className='text-shade-900 text-lg'><MdOutlineWatchLater size={20} /></span>
 						<span className='font-medium text-2xl leading-8 text-shade-900'>
@@ -106,12 +104,12 @@ export default function ShowtimeDropdown(
 										setIsOpen(false)
 									}}
 									className={`
-                    w-19.5 px-4 py-2 rounded-md text-sm font-medium border transition-all
-                    ${past
+										w-19.5 px-4 py-2 rounded-md text-sm font-medium border transition-all
+										${past
 											? 'bg-shade-200 border-shade-200 text-shade-400 cursor-not-allowed'
 											: isSelected
 												? 'bg-royal-blue border-royal-blue text-white'
-												: 'bg-white border-shade-600 text-shade-900 hover:bg-royal-blue hover:text-white hover:border-royal-blue cursor-pointer'
+												: 'bg-white border-shade-600 text-shade-900 hover:bg-royal-blue hover:text-white hover:border-royal-blue active:bg-royal-blue-while-pressed active:text-shade-200 cursor-pointer'
 										}
                   `}
 								>

@@ -1,24 +1,11 @@
 'use client'
-import { upcomingHeroMovies } from "@/actions/movieActions"
 import Skeleton from "@/components/ui/Skeleton"
-import { Movie } from "@/types"
+import { useGetMoviesListQuery } from "@/lib/features/api/moviesApi"
 import Image from "next/image"
 import Link from "next/link"
-import { useEffect, useState } from "react"
 
 export default function UpcomingMovies() {
-	const [movies, setmovies] = useState<Movie[]>([])
-	const [loading, setLoading] = useState(true)
-
-	useEffect(() => {
-		const fetchMovies = async () => {
-			const result = await upcomingHeroMovies()
-			if (result.success && result.data) setmovies(result.data)
-			else console.error('Error fetching upcoming movies: ', result.error)
-			setLoading(false)
-		}
-		fetchMovies()
-	}, [])
+	const { data: movies = [], isLoading } = useGetMoviesListQuery({ limit: 3, status: 'upcoming' });
 
 	return (
 		<div className="w-full mt-22 px-16">
@@ -36,7 +23,7 @@ export default function UpcomingMovies() {
 					</Link>
 				</div>
 			</div>
-			{loading ? (
+			{isLoading ? (
 				<div className="flex gap-6 overflow-hidden w-full">
 					{[...Array(3)].map((_, i) => (
 						<div key={i} className="flex flex-col items-center gap-4 w-full">
@@ -86,7 +73,7 @@ export default function UpcomingMovies() {
 							</div>
 						)
 					})
-					}</div>
+				}</div>
 			)}
 		</div>
 	)

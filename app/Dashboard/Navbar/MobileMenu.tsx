@@ -69,7 +69,7 @@ export default function MobileMenu({ isOpen, onClose }: Props) {
 
 					{user && (
 						<div className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl mb-2 border border-gray-100">
-							<div className="flex justify-center items-center bg-linear-to-r from-[#DAB868] to-[#B28A35] w-12 h-12 text-white text-xl font-bold rounded-full shadow-sm">
+							<div className="shrink-0 flex justify-center items-center bg-linear-to-r from-[#DAB868] to-[#B28A35] w-12 h-12 text-white text-xl font-bold rounded-full shadow-sm">
 								{userInitial}
 							</div>
 							<div className="flex flex-col overflow-hidden">

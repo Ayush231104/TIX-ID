@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react"
 import { FiSearch } from "react-icons/fi"
-import { IoCloseOutline } from "react-icons/io5"
 
 export default function SearchFilter(
     {
@@ -11,14 +10,14 @@ export default function SearchFilter(
         onChange: (value: string) => void
     }
 ) {
-    const [inputValue, setInputValue] = useState("")
+    const [inputValue, setInputValue] = useState(value || "")
 
   useEffect(() => {
     const timer = setTimeout(() => {
       onChange(inputValue)
     }, 400)
     return () => clearTimeout(timer)
-  }, [inputValue])
+  }, [inputValue, onChange])
 
     return (
         <div className='flex max-w-85 items-center gap-2 border border-shade-300 rounded-md px-4.5 py-2 bg-white hover:bg-shade-200'>

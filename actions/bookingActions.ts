@@ -2,23 +2,29 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
-import type { BookingInsert, BookingSeatInsert } from '@/types/index';
+import type { BookingInsert, BookingSeatInsert, ShowtimeForBooking } from '@/types/index';
 
-// get showtimes for a movie
 export async function getShowtimes(movieId: string, date?: string) {
   const supabase = await createClient();
 
   let query = supabase
     .from('showtimes')
     .select(`
-      *,
-      theater (
-        id,
-        name,
-        address,
-        brands ( name, logo_url )
+      id,
+      show_time,
+      price,
+      is_active,
+      movie_id,
+      theater_id,
+      screen_id,
+      created_at,
+      updated_at,
+      theater:theater_id(
+        id, name, address, brand_id, city_id, latitude, longitude,
+        brands:brand_id(id, name, logo_url),
+        cities:city_id(id, name, latitude, longitude)
       ),
-      screen ( id, name, type )
+      screen:screen_id(id, name, type)
     `)
     .eq('movie_id', movieId)
     .eq('is_active', true)
@@ -36,11 +42,13 @@ export async function getShowtimes(movieId: string, date?: string) {
   }
 
   const { data, error } = await query;
-  if (error) return { success: false, error: error.message };
-  return { success: true, data };
+  if (error) return { success: false, error: error.message, data: null };
+
+  // Return any to avoid strict TS conflicts with complex Supabase joins right now
+  return { success: true, data: data as unknown as ShowtimeForBooking[], error: null };
 }
 
-// get seats with their status for a showtime
+
 export async function getSeatsWithStatus(screenId: string, showtimeId: string) {
   const supabase = await createClient()
 
@@ -54,34 +62,33 @@ export async function getSeatsWithStatus(screenId: string, showtimeId: string) {
 
   const { data: lockedSeats } = await supabase
     .from('seat_locked')
-    .select('seat_id, user_id')       // ✅ fetch user_id too
+    .select('seat_id, user_id')
     .eq('showtime_id', showtimeId)
     .eq('reservation_status', 'hold')
     .gt('expires_at', new Date().toISOString())
 
+    const blockedStatuses: ("reserved" | "confirmed" | "cancelled")[] = ['confirmed', 'reserved'];
   const { data: bookedSeats } = await supabase
     .from('booking_seats')
     .select('seat_id')
     .eq('showtime_id', showtimeId)
-    .eq('booking_seat_status', 'confirmed')
-
+    .in('booking_seat_status', blockedStatuses) 
+    
   // map seat_id → user_id for locked seats
-  const lockedMap = new Map(
-    lockedSeats?.map((s) => [s.seat_id, s.user_id]) ?? []
-  )
+  const lockedMap = new Map(lockedSeats?.map((s) => [s.seat_id, s.user_id]) ?? [])
   const bookedIds = new Set(bookedSeats?.map((s) => s.seat_id) ?? [])
 
   const seatsWithStatus = seats?.map((seat) => ({
     ...seat,
     is_locked: lockedMap.has(seat.id),
     is_booked: bookedIds.has(seat.id),
-    locked_by_user_id: lockedMap.get(seat.id) ?? null,  // ✅
+    locked_by_user_id: lockedMap.get(seat.id) ?? null,
   }))
 
   return { success: true, data: seatsWithStatus }
 }
 
-// lock seats temporarily
+
 export async function lockSeats(
   showtimeId: string,
   seatIds: string[],
@@ -96,7 +103,7 @@ export async function lockSeats(
     seat_id: seatId,
     user_id: userId,
     expires_at: expiresAt,
-    reservation_status: 'hold' as const, 
+    reservation_status: 'hold' as const,
   }));
 
   const { error } = await supabase

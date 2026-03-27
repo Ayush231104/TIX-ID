@@ -6,34 +6,15 @@ import 'swiper/css';
 import 'swiper/css/navigation'
 import { Autoplay, Navigation } from 'swiper/modules'
 import MoviesForm from '@/components/admin/MoviesForm';
-import { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
-import type { Movie } from '@/types/index';
+import { useState} from 'react';
 import Link from 'next/link';
 import Skeleton from '@/components/ui/Skeleton';
-
-const supabase = createClient();
+import { useGetMoviesListQuery } from '@/lib/features/api/moviesApi';
 
 const Hero = () => {
   const [showForm, setShowForm] = useState(false);
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchMovies = async () => {
-      const { data, error } = await supabase
-        .from('movies')
-        .select('*')
-        .limit(4);
-      if (!error && data) {
-        setMovies(data);
-        console.log('Movie data:', data);
-      }
-      setLoading(false);
-    };
-
-    fetchMovies();
-  }, []);
+  const { data: movies = [], isLoading } = useGetMoviesListQuery({ limit: 4 });
 
   return (
     <div className="w-full my-16 mx-auto px-8 sm:px-8 md:px-12 lg:px-16 relative">
@@ -45,7 +26,7 @@ const Hero = () => {
       </button>
 
       {showForm && <MoviesForm />}
-      {loading ? (
+      {isLoading ? (
         <div className="flex gap-6 overflow-hidden w-full">
           {[...Array(2)].map((_, i) => (
             <div key={i} className="flex flex-col items-center gap-4 w-full">

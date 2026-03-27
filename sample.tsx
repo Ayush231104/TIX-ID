@@ -1,548 +1,420 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { createClient } from '@/utils/supabase/client'
 import { useAppDispatch, useAppSelector } from '@/lib/hooks'
-import { toggleSeat, setSelectedShowtime } from '@/lib/features/booking/bookingSlice'
-import { getSeatsWithStatus, lockSeats, releaseSeats } from '@/actions/bookingActions'
-import SeatGrid from './SeatGrid'
-import type { SeatWithStatus, ShowtimeForBooking } from '@/types'
-import ShowtimeDropdown from './ShowtimeDropdown'
+import { setDiscount, clearDiscount, resetBooking } from '@/lib/features/booking/bookingSlice'
+import { validateDiscount, createBooking } from '@/actions/bookingActions'
+import { releaseSeats } from '@/actions/bookingActions'
+import { createClient } from '@/utils/supabase/client'
 
 const supabase = createClient()
 
-// ─────────────────────────────────────────
-// Legend item
-// ─────────────────────────────────────────
-function LegendItem({ color, label }: { color: string; label: string }) {
-    return (
-        <div className='flex items-center gap-2'>
-            <div className={`w-4 h-4 ${color}`} />
-            <span className='text-sm text-shade-600'>{label}</span>
-        </div>
-    )
+function formatDate(timestamp: string): string {
+  return new Date(timestamp).toLocaleDateString('en-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).toUpperCase()
 }
 
-// ─────────────────────────────────────────
-// SeatsPage
-// ─────────────────────────────────────────
-export default function SeatsPage() {
-    const router = useRouter()
-    const params = useParams()
-    const movieId = params.bookingId as string
-    const dispatch = useAppDispatch()
+function formatTime(timestamp: string): string {
+  return new Date(timestamp).toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+}
 
-    // ── Redux ──
-    const selectedShowtime = useAppSelector((s) => s.booking.selectedShowtime)
-    const selectedSeatIds = useAppSelector((s) => s.booking.selectedSeatIds)
-    const selectedSeatLabels = useAppSelector((s) => s.booking.selectedSeatLabels)
-    const totalAmount = useAppSelector((s) => s.booking.totalAmount)
+export default function PaymentPage() {
+  const router = useRouter()
+  const params = useParams()
+  const movieId = params.bookingId as string
+  const dispatch = useAppDispatch()
 
-    // ── Local state ──
-    const [seats, setSeats] = useState<SeatWithStatus[]>([])
-    const [loading, setLoading] = useState(true)
-    const [confirming, setConfirming] = useState(false)
-    const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  // ── Read from Redux ──
+  const selectedMovie    = useAppSelector((s) => s.booking.selectedMovie)
+  const selectedShowtime = useAppSelector((s) => s.booking.selectedShowtime)
+  const selectedSeatIds  = useAppSelector((s) => s.booking.selectedSeatIds)
+  const selectedSeatLabels = useAppSelector((s) => s.booking.selectedSeatLabels)
+  const discountCode     = useAppSelector((s) => s.booking.discountCode)
+  const discountId       = useAppSelector((s) => s.booking.discountId)
+  const discountAmount   = useAppSelector((s) => s.booking.discountAmount)
+  const serviceFee       = useAppSelector((s) => s.booking.serviceFee)
+  const totalAmount      = useAppSelector((s) => s.booking.totalAmount)
+  const totalSeats       = useAppSelector((s) => s.booking.totalSeats)
 
-    // ── Prevents our own realtime events from triggering refetch ──
-    const pendingRef = useRef<Set<string>>(new Set())
+  const [showBackModal, setShowBackModal]     = useState(false)
+  const [discountInput, setDiscountInput]     = useState('')
+  const [discountError, setDiscountError]     = useState('')
+  const [discountLoading, setDiscountLoading] = useState(false)
+  const [buyLoading, setBuyLoading]           = useState(false)
+  const [buyError, setBuyError]               = useState('')
 
-    // ─────────────────────────────────────────
-    // Get current user on mount
-    // ─────────────────────────────────────────
-    useEffect(() => {
-        const getUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) setCurrentUserId(user.id)
+  const price = selectedShowtime?.price ?? 0
+
+  // ─────────────────────────────────────────
+  // Back — show modal first
+  // If confirmed → release locks → go back
+  // ─────────────────────────────────────────
+  const handleBackConfirm = async () => {
+    if (selectedShowtime?.id && selectedSeatIds.length > 0) {
+      await releaseSeats(selectedShowtime.id, selectedSeatIds)
+    }
+    dispatch(resetBooking())
+    setShowBackModal(false)
+    router.push(`/booking/${movieId}`)
+  }
+
+  // ─────────────────────────────────────────
+  // Validate discount code
+  // ─────────────────────────────────────────
+  const handleApplyDiscount = async () => {
+    if (!discountInput.trim()) return
+    setDiscountLoading(true)
+    setDiscountError('')
+
+    const result = await validateDiscount(discountInput.trim(), totalAmount)
+
+    if (result.success && result.data && result.discountAmount !== undefined) {
+      dispatch(setDiscount({
+        id: result.data.id,
+        amount: result.discountAmount,
+        code: discountInput.trim(),
+      }))
+      setDiscountInput('')
+    } else {
+      setDiscountError(result.error ?? 'Invalid code')
+    }
+
+    setDiscountLoading(false)
+  }
+
+  const handleRemoveDiscount = () => {
+    dispatch(clearDiscount())
+    setDiscountInput('')
+    setDiscountError('')
+  }
+
+  // ─────────────────────────────────────────
+  // Buy ticket → createBooking → resetBooking
+  // ─────────────────────────────────────────
+  const handleBuy = async () => {
+    if (!selectedShowtime?.id || selectedSeatIds.length === 0) return
+    setBuyLoading(true)
+    setBuyError('')
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
+    const result = await createBooking(
+      {
+        showtime_id: selectedShowtime.id,
+        user_id: user.id,
+        discount_id: discountId ?? undefined,
+        total_amount: totalAmount,
+        total_seats: totalSeats,
+        booking_status: 'confirmed',
+      },
+      selectedSeatIds,
+      selectedShowtime.id
+    )
+
+    if (result.success) {
+      dispatch(resetBooking())
+      router.push(`/booking/${movieId}/seats/payment/success`)
+    } else {
+      setBuyError(result.error ?? 'Something went wrong')
+    }
+
+    setBuyLoading(false)
+  }
+  const handleBuy = async () => {
+    setBuyError('')
+    setBuying(true)
+
+    try {
+        // 1. Get the current user
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (!user) {
+            router.push('/login')
+            return
         }
-        getUser()
-    }, [])
 
-    // ─────────────────────────────────────────
-    // Guard — no showtime → go back
-    // ─────────────────────────────────────────
-    useEffect(() => {
-        if (!selectedShowtime) {
-            router.replace(`/booking/${movieId}`)
+        // Safety check
+        if (!selectedShowtime || !selectedMovie) {
+            setBuyError('Missing showtime or movie details.')
+            setBuying(false)
+            return
         }
-    }, [selectedShowtime, router, movieId])
 
-    // ─────────────────────────────────────────
-    // fetchSeats — used by realtime + rollback
-    // ─────────────────────────────────────────
-    const fetchSeats = useCallback(async () => {
-        if (!selectedShowtime?.screen_id || !selectedShowtime?.id) return
-        const result = await getSeatsWithStatus(
-            selectedShowtime.screen_id!,
+        // 2. Create the booking in your Supabase DB
+        const bookingResult = await createBooking(
+            {
+                showtime_id: selectedShowtime.id,
+                user_id: user.id,
+                total_amount: totalAmount,
+                total_seats: selectedSeatIds.length,
+                discount_id: discountId || undefined,
+            },
+            selectedSeatIds,
             selectedShowtime.id
         )
-        if (result.success && result.data) {
-            setSeats(result.data as SeatWithStatus[])
-        }
-    }, [selectedShowtime])
 
-    // ─────────────────────────────────────────
-    // Initial fetch
-    // ─────────────────────────────────────────
-    useEffect(() => {
-        if (!selectedShowtime?.screen_id || !selectedShowtime?.id) return
-
-        let cancelled = false
-
-        const load = async () => {
-            setLoading(true)
-            const result = await getSeatsWithStatus(
-                selectedShowtime.screen_id!,
-                selectedShowtime.id
-            )
-            if (!cancelled && result.success && result.data) {
-                setSeats(result.data as SeatWithStatus[])
-            }
-            if (!cancelled) setLoading(false)
-        }
-
-        load()
-        return () => { cancelled = true }
-    }, [selectedShowtime?.screen_id, selectedShowtime?.id])
-
-    // ─────────────────────────────────────────
-    // Realtime subscription
-    // ─────────────────────────────────────────
-    useEffect(() => {
-        if (!selectedShowtime?.id) return
-
-        // ALWAYS fetch fresh seats when the database changes
-        const handleChange = () => {
-            fetchSeats()
-        }
-
-        const channel = supabase
-            .channel(`seats-${selectedShowtime.id}`)
-            .on('postgres_changes', {
-                event: '*', schema: 'public', table: 'seat_locked',
-                filter: `showtime_id=eq.${selectedShowtime.id}`,
-            }, handleChange)
-            .on('postgres_changes', {
-                event: '*', schema: 'public', table: 'booking_seats',
-                filter: `showtime_id=eq.${selectedShowtime.id}`,
-            }, handleChange)
-            .subscribe()
-
-        return () => { supabase.removeChannel(channel) }
-    }, [selectedShowtime?.id, fetchSeats])
-
-    // ─────────────────────────────────────────
-    // Release locks on unmount — use refs to
-    // avoid stale closure capturing old values
-    // ─────────────────────────────────────────
-    const showtimeRef = useRef(selectedShowtime)
-    const seatIdsRef = useRef(selectedSeatIds)
-    useEffect(() => { showtimeRef.current = selectedShowtime }, [selectedShowtime])
-    useEffect(() => { seatIdsRef.current = selectedSeatIds }, [selectedSeatIds])
-
-    useEffect(() => {
-        return () => {
-            if (showtimeRef.current?.id && seatIdsRef.current.length > 0) {
-                releaseSeats(showtimeRef.current.id, seatIdsRef.current)
-            }
-        }
-    }, [])
-
-    // ─────────────────────────────────────────
-    // Handle showtime switch from dropdown
-    // Release current locks, dispatch new showtime
-    // ─────────────────────────────────────────
-    const handleShowtimeSwitch = useCallback(async (newShowtime: ShowtimeForBooking) => {
-        // release any currently locked seats before switching
-        if (selectedShowtime?.id && selectedSeatIds.length > 0) {
-            await releaseSeats(selectedShowtime.id, selectedSeatIds)
-        }
-        dispatch(setSelectedShowtime(newShowtime))
-    }, [dispatch, selectedShowtime, selectedSeatIds])
-
-    // ─────────────────────────────────────────
-    // Handle seat click — optimistic update
-    // ─────────────────────────────────────────
-    const rowToLetter = (row: number) => String.fromCharCode(64 + row)
-    const getSeatLabel = (seat: SeatWithStatus) =>
-        `${rowToLetter(seat.seat_row)}${seat.seat_col}`
-
-    const handleSeatClick = useCallback(async (seat: SeatWithStatus) => {
-        if (seat.is_booked) return 
-          if (seat.is_locked && seat.locked_by_user_id !== currentUserId) return
-        if (!selectedShowtime?.id) return
-        if (!currentUserId) {
-            router.push('/login')
+        if (!bookingResult.success || !bookingResult.data) {
+            setBuyError(bookingResult.error ?? 'Failed to create booking')
+            setBuying(false)
             return
         }
 
-        const label = getSeatLabel(seat)
-        const alreadySelected = selectedSeatIds.includes(seat.id)
+        // 3. Call our Server Action to get the Stripe URL
+        const stripeResult = await createStripeCheckoutSession({
+            totalAmount,
+            movieName: selectedMovie.name,
+            seatLabels: selectedSeatLabels.join(', '),
+            bookingId: bookingResult.data.id,
+            showtimeId: selectedShowtime.id,
+        })
 
-        // ── Optimistic — instant UI update ──
-        dispatch(toggleSeat({ id: seat.id, label }))
-        pendingRef.current.add(seat.id)
-
-        if (alreadySelected) {
-            await releaseSeats(selectedShowtime.id, [seat.id])
-        } else {
-            const result = await lockSeats(selectedShowtime.id, [seat.id], currentUserId)
-            if (!result.success) {
-                // roll back — seat was taken by someone else
-                dispatch(toggleSeat({ id: seat.id, label }))
-                await fetchSeats()
-            }
-        }
-
-        pendingRef.current.delete(seat.id)
-    }, [dispatch, selectedShowtime, selectedSeatIds, currentUserId, router, fetchSeats])
-
-    const handleConfirm = async () => {
-        if (selectedSeatIds.length === 0) return
-        if (!currentUserId) {
-            router.push('/login')
+        if (!stripeResult.success || !stripeResult.url) {
+            setBuyError(stripeResult.error ?? 'Failed to create payment session')
+            setBuying(false)
             return
         }
-        setConfirming(true)
-        router.push(`/booking/${movieId}/seats/payment`)
-        setConfirming(false)
+
+        // 4. Redirect the user to Stripe!
+        window.location.href = stripeResult.url
+
+    } catch (err) {
+        setBuyError('Something went wrong. Please try again.')
+        setBuying(false)
     }
-
-    // ─────────────────────────────────────────
-    // Guards
-    // ─────────────────────────────────────────
-    if (!selectedShowtime) return null
-
-    if (loading) {
-        return (
-            <div className='flex items-center justify-center min-h-screen'>
-                <div className='w-8 h-8 bg-royal-blue rounded-full animate-bounce' />
-            </div>
-        )
-    }
-
-    // ─────────────────────────────────────────
-    // Render
-    // ─────────────────────────────────────────
-    return (
-        <div className='min-h-screen pb-40'>
-            <div className='px-6 md:px-16 pt-10'>
-
-                {/* ── Header ── */}
-                <h1 className='text-4xl font-bold text-shade-900'>CHOOSE SEAT</h1>
-                <p className='text-shade-600 text-[16px] mt-2'>
-                    Choose the seat you want to occupy during the screening
-                </p>
-
-                <div className='mt-8'>
-
-                    {/* ── Showtime dropdown + Legend row ── */}
-                    <div className='flex items-center justify-between mb-8'>
-
-                        <ShowtimeDropdown
-                            selectedShowtime={selectedShowtime}
-                            movieId={movieId}
-                            onSelect={handleShowtimeSwitch}
-                        />
-
-                        {/* Legend */}
-                        <div className='flex items-center gap-6'>
-                            <LegendItem color='bg-royal-blue' label='Booked' />
-                            <LegendItem color='bg-white border border-shade-300' label='Available' />
-                            <LegendItem color='bg-sky-blue' label='Selected' />
-                            <LegendItem color='bg-white border-2 border-yellow-400' label='On hold' />
-                        </div>
-                    </div>
-
-                    {/* ── Seat Grid ── */}
-                    <SeatGrid
-                        seats={seats}
-                        selectedSeatIds={selectedSeatIds}
-                        currentUserId={currentUserId}
-                        onSeatClick={handleSeatClick}
-                    />
-
-                </div>
-            </div>
-
-            {selectedSeatIds.length > 0 && (
-                <div className='bg-white border-t border-shade-200 px-6 md:px-16 py-4 flex items-center justify-between z-50'>
-
-                    <div>
-                        <div className='text-shade-600 text-sm'>Total</div>
-                        <div className='font-bold text-2xl text-shade-900'>
-                            ₹{totalAmount.toLocaleString('en-IN')}
-                        </div>
-                    </div>
-
-                    <div>
-                        <div className='text-shade-600 text-sm'>Seats ({selectedSeatIds.length})</div>
-                        <div className='font-medium text-shade-900'>
-                            {selectedSeatLabels.join(', ')}
-                        </div>
-                    </div>
-
-                    <div className='flex gap-3'>
-                        <button
-                            onClick={() => router.back()}
-                            className='px-6 py-3 border border-shade-300 rounded-xl text-shade-900 hover:bg-shade-100 transition-all cursor-pointer'
-                        >
-                            Back
-                        </button>
-                        <button
-                            onClick={handleConfirm}
-                            disabled={confirming}
-                            className='px-8 py-3 bg-royal-blue text-white font-bold rounded-xl hover:bg-royal-blue-hover transition-all disabled:opacity-50 uppercase tracking-wide cursor-pointer'
-                        >
-                            {confirming ? 'Please wait...' : 'Confirm'}
-                        </button>
-                    </div>
-
-                </div>
-            )}
-        </div>
-    )
 }
 
-import { getShowtimes } from "@/actions/bookingActions"
-import { ShowtimeForBooking } from "@/types"
-import { useEffect, useRef, useState } from "react"
-import { IoIosArrowDown, IoIosArrowUp } from "react-icons/io"
-import { MdOutlineWatchLater } from "react-icons/md"
-
-export default function ShowtimeDropdown(
-  {
-    selectedShowtime,
-    movieId,
-    onSelect
-  }: {
-    selectedShowtime: ShowtimeForBooking | null
-    movieId: string
-    onSelect: (newShowtime: ShowtimeForBooking) => void
-  }
-) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [showtimes, setShowtimes] = useState<ShowtimeForBooking[]>([])
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  useEffect(() => {
-    if (!isOpen) return
-    const fetchShowtimes = async () => {
-      if (!selectedShowtime?.show_time) return
-      const date = new Date(selectedShowtime?.show_time).toISOString().split('T')[0] // Get date in YYYY-MM-DD format
-      const result = await getShowtimes(movieId, date)
-      if (result.success && result.data) {
-        // setShowtimes(result.data as ShowtimeForBooking[])
-        const filtered = (result.data as ShowtimeForBooking[]).filter(
-          (st) => st.screen_id === selectedShowtime.screen_id
-        )
-        setShowtimes(filtered)
-      }
-    }
-    fetchShowtimes()
-  }, [isOpen, movieId, selectedShowtime])
-
-  const formatTime = (timestamp: string | undefined) => {
-    if (!timestamp) return '--:--'
-    return new Date(timestamp).toLocaleTimeString('en-IN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    })
-  }
-
-  const isPast = (timestamp: string) => new Date(timestamp) < new Date()
+  if (!selectedShowtime || !selectedMovie) return null
 
   return (
-    <div ref={ref} className="relative">
+    <div className='min-h-screen'>
+      <div className='px-6 md:px-16 pt-11'>
+        <h1 className='text-4xl font-bold text-shade-900'>PAYMENT CONFIRMATION</h1>
+        <p className='text-shade-600 text-[16px] mt-2'>
+          Confirm payment for the seat you ordered
+        </p>
+      </div>
 
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className='flex justify-center items-center gap-2 cursor-pointer'
-      >
-        <span className='text-shade-900 text-lg'><MdOutlineWatchLater size={20} /></span>
-        <span className='font-medium text-2xl leading-8 text-shade-900'>
-          {formatTime(selectedShowtime?.show_time)}
-        </span>
-        {isOpen
-          ? <IoIosArrowUp className='text-shade-900 text-xl' />
-          : <IoIosArrowDown className='text-shade-900 text-xl' />
-        }
-      </button>
+      <div className='px-6 md:px-16 mt-10 flex flex-col lg:flex-row gap-12'>
 
-      {isOpen && (
-        <div className='absolute -top-4.25 -left-4.25 w-42 sm:w-94.5 bg-white rounded-xl shadow-md/30 shadow-gray-900 border border-gray-100 z-50 p-4 animate-in fade-in zoom-in-95'>
-
-          {/* Panel header */}
-          <button
-            onClick={() => setIsOpen(false)}
-            className='flex items-center gap-2 cursor-pointer'
-          >
-            <span className='text-shade-900 text-lg'><MdOutlineWatchLater size={20} /></span>
-            <span className='font-medium text-2xl leading-8 text-shade-900'>
-              {formatTime(selectedShowtime?.show_time)}
-            </span>
-            <IoIosArrowUp className='text-shade-900 text-xl' />
-          </button>
-
-          <div className='grid grid-cols-1 sm:grid-cols-4 gap-3 mt-4'>
-            {showtimes.length === 0 && (
-              <span className='text-sm text-shade-400'>Loading...</span>
-            )}
-            {showtimes.map((st) => {
-              const isSelected = st.id === selectedShowtime?.id
-              const past = isPast(st.show_time)
-
-              return (
-                <button
-                  key={st.id}
-                  disabled={past}
-                  onClick={() => {
-                    onSelect(st)
-                    setIsOpen(false)
-                  }}
-                  className={`
-                    w-19.5 px-4 py-2 rounded-md text-sm font-medium border transition-all
-                    ${past
-                      ? 'bg-shade-200 border-shade-200 text-shade-400 cursor-not-allowed'
-                      : isSelected
-                        ? 'bg-royal-blue border-royal-blue text-white'
-                        : 'bg-white border-shade-600 text-shade-900 hover:bg-royal-blue hover:text-white hover:border-royal-blue cursor-pointer'
-                    }
-                  `}
-                >
-                  {formatTime(st.show_time)}
-                </button>
-              )
-            })}
+        {/* ── Left — Schedule Details ── */}
+        <div className='flex-1 max-w-sm'>
+          <div className='text-2xl font-medium text-shade-900 mb-6'>
+            Schedule Details
           </div>
 
+          {/* Movie title */}
+          <div className='mb-5 pb-5 border-b border-shade-200'>
+            <div className='text-shade-400 text-xs mb-1'>Movie Title</div>
+            <div className='text-shade-900 font-bold text-xl uppercase'>
+              {selectedMovie.name}
+            </div>
+          </div>
+
+          {/* Date */}
+          <div className='mb-5 pb-5 border-b border-shade-200'>
+            <div className='text-shade-400 text-xs mb-1'>Date</div>
+            <div className='text-shade-900 font-bold text-base'>
+              {formatDate(selectedShowtime.show_time)}
+            </div>
+          </div>
+
+          {/* Class + Time */}
+          <div className='mb-5 pb-5 border-b border-shade-200 flex gap-12'>
+            <div>
+              <div className='text-shade-400 text-xs mb-1'>Class</div>
+              <div className='text-shade-900 font-bold text-base uppercase'>
+                {selectedShowtime.screen?.name ?? '—'}
+              </div>
+            </div>
+            <div>
+              <div className='text-shade-400 text-xs mb-1'>Time</div>
+              <div className='text-shade-900 font-bold text-base'>
+                {formatTime(selectedShowtime.show_time)}
+              </div>
+            </div>
+          </div>
+
+          {/* Seats */}
+          <div className='mb-8 pb-5 border-b border-shade-200'>
+            <div className='text-shade-400 text-xs mb-1'>
+              Seats ({totalSeats})
+            </div>
+            <div className='text-shade-900 font-bold text-base'>
+              {selectedSeatLabels.join(', ')}
+            </div>
+          </div>
+
+          {/* Back button */}
+          <button
+            onClick={() => setShowBackModal(true)}
+            className='flex items-center gap-2 text-shade-600 hover:text-shade-900 transition cursor-pointer'
+          >
+            <span className='text-lg'>←</span>
+            <span className='font-medium'>Go Back</span>
+          </button>
+        </div>
+
+        {/* ── Right — Order Summary ── */}
+        <div className='w-full lg:max-w-md'>
+          <div className='border border-shade-200 rounded-2xl p-6'>
+
+            <div className='text-xl font-bold text-shade-900 mb-5'>
+              Order Summary
+            </div>
+
+            {/* Transaction detail */}
+            <div className='text-sm font-semibold text-shade-900 mb-3'>
+              Transaction Detail
+            </div>
+
+            <div className='flex justify-between text-sm text-shade-700 mb-2'>
+              <span className='uppercase'>{selectedShowtime.screen?.name ?? 'Seat'}</span>
+              <span>₹{price.toLocaleString('en-IN')} × {totalSeats}</span>
+            </div>
+
+            <div className='flex justify-between text-sm text-shade-700 mb-4'>
+              <span>Service Fee</span>
+              <span>₹{serviceFee.toLocaleString('en-IN')} × {totalSeats}</span>
+            </div>
+
+            <hr className='border-shade-200 mb-4' />
+
+            {/* Discount input */}
+            <div className='text-sm font-semibold text-shade-900 mb-3'>
+              Promo & Voucher
+            </div>
+
+            {discountId ? (
+              // Discount applied
+              <div className='flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-4 py-3 mb-4'>
+                <div>
+                  <div className='text-xs text-shade-400'>Applied</div>
+                  <div className='font-semibold text-green-700'>{discountCode}</div>
+                </div>
+                <div className='flex items-center gap-3'>
+                  <span className='text-green-700 font-medium'>
+                    - ₹{discountAmount.toLocaleString('en-IN')}
+                  </span>
+                  <button
+                    onClick={handleRemoveDiscount}
+                    className='text-shade-400 hover:text-shade-900 text-lg cursor-pointer'
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            ) : (
+              // Discount input field
+              <div className='mb-4'>
+                <div className='flex gap-2'>
+                  <input
+                    type='text'
+                    value={discountInput}
+                    onChange={(e) => {
+                      setDiscountInput(e.target.value.toUpperCase())
+                      setDiscountError('')
+                    }}
+                    placeholder='Enter promo code'
+                    className='flex-1 border border-shade-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-royal-blue'
+                  />
+                  <button
+                    onClick={handleApplyDiscount}
+                    disabled={discountLoading || !discountInput.trim()}
+                    className='px-4 py-2 bg-royal-blue text-white text-sm font-medium rounded-lg hover:bg-royal-blue-hover disabled:opacity-50 cursor-pointer transition-all'
+                  >
+                    {discountLoading ? '...' : 'Apply'}
+                  </button>
+                </div>
+                {discountError && (
+                  <div className='text-red-500 text-xs mt-1'>{discountError}</div>
+                )}
+              </div>
+            )}
+
+            <hr className='border-shade-200 mb-4' />
+
+            {/* Total */}
+            <div className='flex justify-between font-bold text-shade-900 text-base mb-6'>
+              <span>Total Payment</span>
+              <span>₹{totalAmount.toLocaleString('en-IN')}</span>
+            </div>
+
+            {/* Error */}
+            {buyError && (
+              <div className='text-red-500 text-sm mb-3'>{buyError}</div>
+            )}
+
+            {/* Note */}
+            <div className='text-xs text-red-400 mb-4'>
+              * Ticket purchases cannot be cancelled
+            </div>
+
+            {/* Buy button */}
+            <button
+              onClick={handleBuy}
+              disabled={buyLoading}
+              className='w-full bg-royal-blue text-sunshine-yellow font-bold text-lg py-4 rounded-xl hover:bg-royal-blue-hover transition-all disabled:opacity-50 cursor-pointer uppercase tracking-wide'
+            >
+              {buyLoading ? 'Processing...' : 'Buy Ticket'}
+            </button>
+
+          </div>
+        </div>
+
+      </div>
+
+      {/* ── Back Confirmation Modal ── */}
+      {showBackModal && (
+        <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50'>
+          <div className='bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-xl'>
+
+            <div className='flex items-center justify-between mb-4'>
+              <h2 className='text-xl font-bold text-shade-900'>Want to go back?</h2>
+              <button
+                onClick={() => setShowBackModal(false)}
+                className='text-shade-400 hover:text-shade-900 text-2xl cursor-pointer'
+              >
+                ×
+              </button>
+            </div>
+
+            <p className='text-shade-600 text-sm mb-6'>
+              The seats you selected will be released and you will need to select again.
+            </p>
+
+            <div className='flex gap-3 justify-end'>
+              <button
+                onClick={() => setShowBackModal(false)}
+                className='px-6 py-2.5 border border-shade-300 rounded-xl text-shade-900 hover:bg-shade-100 transition-all cursor-pointer'
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBackConfirm}
+                className='px-6 py-2.5 bg-royal-blue text-white font-bold rounded-xl hover:bg-royal-blue-hover transition-all cursor-pointer'
+              >
+                Go Back
+              </button>
+            </div>
+
+          </div>
         </div>
       )}
     </div>
   )
 }
-import { SeatWithStatus } from "@/types"
 
-interface SeatGridProps {
-    seats: SeatWithStatus[]
-    selectedSeatIds: string[]
-    currentUserId: string | null
-    onSeatClick: (seat: SeatWithStatus) => void
-}
-
-export default function SeatGrid({ seats, selectedSeatIds, currentUserId, onSeatClick }: SeatGridProps) {
-    const totalCols = seats.length > 0
-        ? Math.max(...seats.map((s) => s.seat_col))
-        : 0;
-
-    const halfCols = Math.floor(totalCols / 2)
-
-    const seatsByRow = seats.reduce<Record<number, SeatWithStatus[]>>((acc, seat) => {
-        if (!acc[seat.seat_row]) acc[seat.seat_row] = []
-        acc[seat.seat_row].push(seat)
-        return acc
-    }, {})
-
-    return (
-        <div className="w-full">
-            {Object.entries(seatsByRow)
-                .sort(([a], [b]) => Number(a) - Number(b))
-                .map(([rowNum, rowSeats]) => {
-                    const sorted = [...rowSeats].sort((a, b) => a.seat_col - b.seat_col)
-                    const leftSeats = sorted.filter((s) => s.seat_col <= halfCols)
-                    const rightSeats = sorted.filter((s) => s.seat_col > halfCols)
-                    return (
-                        <div key={rowNum} className="flex justify-center">
-                            <div className='flex gap-3'>
-                                {leftSeats.map((seat) => (
-                                    <SeatButton
-                                        key={seat.id}
-                                        seat={seat}
-                                        currentUserId={currentUserId}
-                                        isSelected={selectedSeatIds.includes(seat.id)}
-                                        onClick={() => onSeatClick(seat)}
-                                    />
-                                ))}
-                            </div>
-
-                            <div className='w-20' />
-
-                            <div className='flex gap-3'>
-                                {rightSeats.map((seat) => (
-                                    <SeatButton
-                                        key={seat.id}
-                                        seat={seat}
-                                        currentUserId={currentUserId}
-                                        isSelected={selectedSeatIds.includes(seat.id)}
-                                        onClick={() => onSeatClick(seat)}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    )
-                })
-            }
-        </div>
-    )
-}
-
-
-
-const rowToLetter = (row: number) => String.fromCharCode(64 + row)
-
-const getSeatLabel = (seat: SeatWithStatus) =>
-    `${rowToLetter(seat.seat_row)}${seat.seat_col}`
-
-function SeatButton({
-    seat,
-    isSelected,
-    currentUserId,
-    onClick,
-}: {
-    seat: SeatWithStatus
-    isSelected: boolean
-    currentUserId: string | null
-    onClick: () => void
-}) {
-    const label = getSeatLabel(seat)
-
-    const isBooked = seat.is_booked
-    const isLockedByMe = isSelected
-    const isLockedByOther = seat.is_locked && seat.locked_by_user_id !== currentUserId
-
-    let colorClass: string
-
-    if (isBooked) {
-        colorClass = 'bg-royal-blue text-white cursor-not-allowed'
-    } else if (isLockedByOther) {
-        // yellow border — someone else has it in their cart
-        colorClass = 'bg-white border-2 border-yellow-400 text-shade-900 cursor-not-allowed'
-    } else if (isLockedByMe) {
-        colorClass = 'bg-sky-blue text-white cursor-pointer'
-    } else {
-        colorClass = 'bg-white border border-shade-300 text-shade-900 hover:bg-royal-blue hover:text-white cursor-pointer'
-    }
-
-    return (
-        <button
-      onClick={onClick}
-      disabled={isBooked || isLockedByOther}
-      title={isLockedByOther ? 'Held by another user' : label}
-      className={`w-10 h-9 text-xs mb-3 leading-3 font-medium rounded-md transition-all ${colorClass}`}
-    >
-      {label}
-    </button>
-    )
-}

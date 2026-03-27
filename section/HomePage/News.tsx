@@ -1,39 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import NewsForm from '@/components/admin/NewsForm';
 import Link from 'next/link';
-import { createClient } from '@/utils/supabase/client';
 import Image from 'next/image';
-import type { NewsCard } from '@/types';
 import Skeleton from '@/components/ui/Skeleton';
-
-const supabase = createClient();
+import { useGetNewsQuery } from '@/lib/features/api/newsApi';
 
 const News = () => {
   const [showForm, setShowForm] = useState(false);
-  const [news, setNews] = useState<NewsCard[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchNews = async () => {
-      const { data, error } = await supabase
-        .from('news')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(3);
-      // console.log(data);
-      if (error) {
-        setError(error.message);
-      } else {
-        setNews((data as NewsCard[]) ?? []);
-      }
-      setLoading(false);
-    };
-
-    fetchNews();
-  }, []);
+  const { data: news = [], isLoading, isError} = useGetNewsQuery({ limit: 3});
 
   return (
     <div className="w-full mt-35 px-16">
@@ -61,8 +38,8 @@ const News = () => {
 
       {showForm && <NewsForm />}
 
-      {error && <div className="text-red-500">{error}</div>}
-      {loading ? (
+      {isError && <div className="text-red-500">Error fetching news</div>}
+      {isLoading ? (
         <div className="flex gap-6 overflow-hidden w-full">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="flex flex-col items-center gap-4 w-full">

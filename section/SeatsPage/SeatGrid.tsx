@@ -22,7 +22,8 @@ export default function SeatGrid({ seats, selectedSeatIds, currentUserId, onSeat
     }, {})
 
     return (
-        <div className="w-full">
+        <div className=" w-full overflow-x-auto no-scrollbar">
+            <div className="w-fit mx-auto">
             {Object.entries(seatsByRow)
                 .sort(([a], [b]) => Number(a) - Number(b))
                 .map(([rowNum, rowSeats]) => {
@@ -30,36 +31,35 @@ export default function SeatGrid({ seats, selectedSeatIds, currentUserId, onSeat
                     const leftSeats = sorted.filter((s) => s.seat_col <= halfCols)
                     const rightSeats = sorted.filter((s) => s.seat_col > halfCols)
                     return (
-                        <div key={rowNum} className="flex justify-center">
-                            <div className='flex gap-3'>
+                        <div key={rowNum} className="flex gap-10 sm:gap-20 justify-center">
+                            <div className='flex gap-2 sm:gap-3'>
                                 {leftSeats.map((seat) => (
                                     <SeatButton
-                                        key={seat.id}
-                                        seat={seat}
-                                        currentUserId={currentUserId}
-                                        isSelected={selectedSeatIds.includes(seat.id)}
-                                        onClick={() => onSeatClick(seat)}
+                                    key={seat.id}
+                                    seat={seat}
+                                    currentUserId={currentUserId}
+                                    isSelected={selectedSeatIds.includes(seat.id)}
+                                    onClick={() => onSeatClick(seat)}
                                     />
                                 ))}
                             </div>
 
-                            <div className='w-20' />
-
-                            <div className='flex gap-3'>
+                            <div className='flex gap-2 sm:gap-3'>
                                 {rightSeats.map((seat) => (
                                     <SeatButton
-                                        key={seat.id}
-                                        seat={seat}
-                                        currentUserId={currentUserId}
-                                        isSelected={selectedSeatIds.includes(seat.id)}
+                                    key={seat.id}
+                                    seat={seat}
+                                    currentUserId={currentUserId}
+                                    isSelected={selectedSeatIds.includes(seat.id)}
                                         onClick={() => onSeatClick(seat)}
-                                    />
-                                ))}
+                                        />
+                                    ))}
                             </div>
                         </div>
                     )
                 })
             }
+            </div>
         </div>
     )
 }
