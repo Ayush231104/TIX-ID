@@ -190,3 +190,4 @@ export type ShowtimeForBooking = {
     type: string | null
   } | null
 }
+

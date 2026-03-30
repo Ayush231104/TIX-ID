@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useAppDispatch, useAppSelector } from '@/lib/hooks'
-import { toggleSeat, setSelectedShowtime } from '@/lib/features/slice/bookingSlice'
+import { toggleSeat, setSelectedShowtime, setSelectedMovie } from '@/lib/features/slice/bookingSlice'
 import SeatGrid from './SeatGrid'
 import type { SeatWithStatus, ShowtimeForBooking } from '@/types'
 import ShowtimeDropdown from './ShowtimeDropdown'
@@ -31,6 +31,7 @@ export default function SeatsPage() {
     const dispatch = useAppDispatch()
 
     // ── Redux ──
+    const selectedMovie = useAppSelector((s) => s.booking.selectedMovie)
     const selectedShowtime = useAppSelector((s) => s.booking.selectedShowtime)
     const selectedSeatIds = useAppSelector((s) => s.booking.selectedSeatIds)
     const selectedSeatLabels = useAppSelector((s) => s.booking.selectedSeatLabels)
@@ -68,12 +69,35 @@ export default function SeatsPage() {
         getUser()
     }, [])
 
-    // Guard — no showtime → go back
+    // GUARD & HYDRATION (Handles Page Refresh)
     useEffect(() => {
-        if (!selectedShowtime) {
+        if (selectedShowtime && selectedMovie) {
+            sessionStorage.setItem('tix_seats_backup', JSON.stringify({
+                showtime: selectedShowtime,
+                movie: selectedMovie,
+                seatIds: selectedSeatIds,
+                seatLabels: selectedSeatLabels
+            }))
+            return
+        }
+
+        // 2. If Redux is empty (because of a refresh), check for the backup
+        const backupRaw = sessionStorage.getItem('tix_seats_backup')
+        if (backupRaw) {
+            const backup = JSON.parse(backupRaw)
+
+            // Restore the Movie and Showtime
+            dispatch(setSelectedMovie(backup.movie))
+            dispatch(setSelectedShowtime(backup.showtime))
+
+            // Restore the Seats they had clicked!
+            backup.seatIds.forEach((id: string, index: number) => {
+                dispatch(toggleSeat({ id, label: backup.seatLabels[index] }))
+            })
+        } else {
             router.replace(`/booking/${movieId}`)
         }
-    }, [selectedShowtime, router, movieId])
+    }, [selectedShowtime, selectedMovie, selectedSeatIds, selectedSeatLabels, dispatch, router, movieId])
 
     // Realtime subscription
     useEffect(() => {
@@ -126,7 +150,7 @@ export default function SeatsPage() {
     const getSeatLabel = (seat: SeatWithStatus) => `${rowToLetter(seat.seat_row)}${seat.seat_col}`
 
     const handleSeatClick = useCallback(async (seat: SeatWithStatus) => {
-        if (seat.is_booked) return 
+        if (seat.is_booked) return
         if (seat.is_locked && seat.locked_by_user_id !== currentUserId) return
         if (!selectedShowtime?.id) return
         if (!currentUserId) {
@@ -155,11 +179,11 @@ export default function SeatsPage() {
 
         // ── Optimistic — instant UI update ──
         dispatch(toggleSeat({ id: seat.id, label })); // Add the newly clicked seat
-        
+
         if (oldestSeatId && oldestSeatLabel) {
             dispatch(toggleSeat({ id: oldestSeatId, label: oldestSeatLabel })); // Remove the oldest seat
         }
-        
+
         pendingRef.current.add(seat.id)
 
         if (alreadySelected) {
@@ -167,17 +191,17 @@ export default function SeatsPage() {
         } else {
             // We use Promise.all to run the lock and the release at the EXACT same time for speed
             const lockPromise = lockSeatsAction({ showtimeId: selectedShowtime.id, seatIds: [seat.id], userId: currentUserId });
-            const releasePromise = oldestSeatId 
-                ? releaseSeatsAction({ showtimeId: selectedShowtime.id, seatIds: [oldestSeatId] }) 
+            const releasePromise = oldestSeatId
+                ? releaseSeatsAction({ showtimeId: selectedShowtime.id, seatIds: [oldestSeatId] })
                 : Promise.resolve({ error: undefined });
 
             const [lockResult] = await Promise.all([lockPromise, releasePromise]);
 
             if (lockResult.error) {
                 // Rollback both actions if someone else snatched the new seat right as we clicked
-                dispatch(toggleSeat({ id: seat.id, label })); 
+                dispatch(toggleSeat({ id: seat.id, label }));
                 if (oldestSeatId && oldestSeatLabel) {
-                    dispatch(toggleSeat({ id: oldestSeatId, label: oldestSeatLabel })); 
+                    dispatch(toggleSeat({ id: oldestSeatId, label: oldestSeatLabel }));
                 }
                 await fetchSeats();
             }

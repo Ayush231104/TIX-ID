@@ -22,9 +22,11 @@ export default function SeatButton({
     const isLockedByMe = isSelected
     const isLockedByOther = seat.is_locked && seat.locked_by_user_id !== currentUserId
 
+    const isProcessingByMe = seat.is_locked && seat.locked_by_user_id === currentUserId && !isSelected
+
     let colorClass: string
 
-    if (isBooked) {
+    if (isBooked || isProcessingByMe) {
         colorClass = 'bg-royal-blue text-white cursor-not-allowed'
     } else if (isLockedByOther) {
         colorClass = 'bg-white border-2 border-yellow-400 text-shade-900 cursor-not-allowed'
@@ -37,7 +39,7 @@ export default function SeatButton({
     return (
         <button
       onClick={onClick}
-      disabled={isBooked || isLockedByOther}
+      disabled={isBooked || isLockedByOther || isProcessingByMe }
       title={isLockedByOther ? 'Held by another user' : label}
       className={`w-7 h-6 sm:w-10 sm:h-9 text-[10px] sm:text-xs mb-1 sm:mb-3 leading-3 font-medium rounded-md transition-all ${colorClass}`}
     >

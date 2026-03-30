@@ -1,12 +1,26 @@
 'use client'
+
+import { useEffect, useRef, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
+import { useAppDispatch, useAppSelector } from '@/lib/hooks';
+import { GoArrowLeft } from 'react-icons/go';
+
+// Server Actions
 import { createBooking, releaseSeats, validateDiscount } from '@/actions/bookingActions';
 import { createStripeCheckoutSession } from '@/actions/stripeActions';
-import { clearDiscount, resetBooking, setDiscount } from '@/lib/features/slice/bookingSlice';
-import { useAppDispatch, useAppSelector } from '@/lib/hooks';
-import { createClient } from '@/utils/supabase/client';
-import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { GoArrowLeft } from 'react-icons/go';
+
+// Redux Actions
+import {
+    clearDiscount,
+    resetBooking,
+    setDiscount,
+    setSelectedMovie,
+    setSelectedShowtime,
+    toggleSeat
+} from '@/lib/features/slice/bookingSlice';
+import toast from 'react-hot-toast';
+import { cancelPaymentAndBooking } from '@/actions/paymentVerification';
 
 const supabase = createClient();
 
@@ -33,6 +47,7 @@ export default function PaymentPage() {
     const params = useParams()
     const movieId = params.bookingId as string
 
+    // ── Redux State ──
     const selectedMovie = useAppSelector((state) => state.booking.selectedMovie);
     const selectedShowtime = useAppSelector((state) => state.booking.selectedShowtime);
     const selectedSeatIds = useAppSelector((state) => state.booking.selectedSeatIds);
@@ -46,6 +61,7 @@ export default function PaymentPage() {
     const seatPrice = selectedShowtime?.price ?? 0
     const seatCount = selectedSeatIds.length
 
+    // ── Local State ──
     const [showBackModal, setShowBackModal] = useState(false)
     const [discountInput, setDiscountInput] = useState('')
     const [discountError, setDiscountError] = useState('')
@@ -53,11 +69,82 @@ export default function PaymentPage() {
     const [buying, setBuying] = useState(false)
     const [buyError, setBuyError] = useState('')
 
+    const [timeLeft, setTimeLeft] = useState(600);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+
+    const formatTime = (seconds: number) => {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    };
+
+    const handleTimeout = async () => {
+        toast.error("Time expired! Your seats have been released.");
+        const currentBookingId = sessionStorage.getItem('tix_pending_booking_id');
+
+        if (currentBookingId) {
+            await cancelPaymentAndBooking(currentBookingId);
+        } else if (selectedShowtime?.id && selectedSeatIds.length > 0) {
+            await releaseSeats(selectedShowtime.id, selectedSeatIds);
+        }
+
+        dispatch(resetBooking());
+        sessionStorage.removeItem('tix_cart');
+        sessionStorage.removeItem('tix_pending_booking_id');
+        router.push(`/booking/${movieId}`);
+    }
+
+        // HYDRATION GUARD: Survives Refresh & Stripe "Back" Button
+    useEffect(() => {
+        if (!selectedMovie && !selectedShowtime && selectedSeatIds.length > 0) {
+            const savedCartRaw = sessionStorage.getItem('tix_cart');
+            if (savedCartRaw) {
+                const savedCart = JSON.parse(savedCartRaw);
+                dispatch(setSelectedMovie(savedCart.movie));
+                dispatch(setSelectedShowtime(savedCart.showtime));
+                savedCart.seats.forEach((seatId: string, index: number) => {
+                    dispatch(toggleSeat({ id: seatId, label: savedCart.labels[index] }));
+                });
+            } else {
+                router.replace(`/booking/${movieId}`);
+                return;
+            }
+        }
+
+        timerRef.current = setInterval(() => {
+            setTimeLeft((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timerRef.current!);
+                    handleTimeout();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, [selectedMovie, selectedShowtime, selectedSeatIds.length, movieId, router, dispatch, ]);
+
+    // BUTTON HANDLERS
     const handleBackConfirm = async () => {
-        if (selectedShowtime?.id && selectedSeatIds.length > 0) {
+        setBuying(true); // Disable buttons while cancelling
+        const currentBookingId = sessionStorage.getItem('tix_pending_booking_id');
+
+        if (currentBookingId) {
+            // IF THEY ALREADY CLICKED "BUY TICKET", WE MUST CANCEL THE REAL BOOKING!
+            await cancelPaymentAndBooking(currentBookingId);
+        } else if (selectedShowtime?.id && selectedSeatIds.length > 0) {
+            // IF THEY NEVER CLICKED "BUY TICKET", JUST RELEASE THE TEMPORARY LOCK
             await releaseSeats(selectedShowtime.id, selectedSeatIds)
         }
+
         dispatch(resetBooking())
+        sessionStorage.removeItem('tix_cart');
+        sessionStorage.removeItem('tix_pending_booking_id');
+
         setShowBackModal(false)
         router.push(`/booking/${movieId}`)
     }
@@ -79,7 +166,6 @@ export default function PaymentPage() {
         } else {
             setDiscountError(result.error ?? 'Invalid code')
         }
-
         setDiscountLoading(false)
     }
 
@@ -89,135 +175,116 @@ export default function PaymentPage() {
         setDiscountError('')
     }
 
-    // const handleBuy = async () => {
-    //     setBuyError('')
-    //     setBuying(true)
-
-    //     try {
-    //         const { data: { user }, error } = await supabase.auth.getUser()
-
-    //         if (!user) {
-    //             router.push('/login')
-    //             return
-    //         }
-
-    //         if(!selectedMovie || !selectedShowtime) {
-    //             setBuyError('Missing movie or showtime details.')
-    //             setBuying(false)
-    //             return
-    //         }
-
-    //         const bookingResult = await createBooking({
-    //             showtime_id: selectedShowtime.id,
-    //             user_id: user.id,
-    //             total_amount: totalAmount,
-    //             total_seats: seatCount,
-    //             discount_id: discountId,
-    //         },
-    //         selectedSeatIds,
-    //         selectedShowtime.id
-    //     )
-
-    //     if (!bookingResult.success || !bookingResult.data) {
-    //         setBuyError(bookingResult.error ?? 'Failed to create booking')
-    //         setBuying(false)
-    //         return
-    //     }
-
-    //     const stripeResult = await createStripeCheckoutSession({
-    //         totalAmount,
-    //         movieName: selectedMovie.name,
-    //         seatLabels: selectedSeatLabels.join(', '),
-    //         bookingId: bookingResult.data.id,
-    //         showtimeId: selectedShowtime.id,
-    //         userId: user.id,
-    //     })
-
-    //     if (!stripeResult.success || !stripeResult.url) {
-    //         setBuyError(stripeResult.error ?? 'Failed to create payment session')
-    //         setBuying(false)
-    //         return
-    //     }
-
-    //     window.location.href = stripeResult.url
-
-    //     } catch (err) {
-    //         setBuyError('Something went wrong. Please try again.')
-    //         setBuying(false)
-    //         console.error('Purchase error:', err)
-    //     }
-    // }
     const handleBuy = async () => {
-    setBuyError('')
-    setBuying(true)
+        setBuyError('')
+        setBuying(true)
 
-    try {
-        console.log("1. Starting handleBuy...");
-        
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        
-        if (!user) {
-            console.log("❌ Error: No user found. Redirecting to login.");
-            router.push('/login')
-            return
-        }
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) {
+                router.push('/login')
+                return
+            }
 
-        console.log("2. User found! Calling createBooking...");
-        const bookingResult = await createBooking(
-            {
-                showtime_id: selectedShowtime!.id,
-                user_id: user.id,
-                total_amount: totalAmount,
-                total_seats: selectedSeatIds.length,
-                discount_id: discountId || undefined,
-            },
-            selectedSeatIds,
-            selectedShowtime!.id
-        )
+            let currentBookingId = sessionStorage.getItem('tix_pending_booking_id');
+            const savedCartRaw = sessionStorage.getItem('tix_cart');
 
-        console.log("3. createBooking result:", bookingResult);
+            // 🚀 THE FIX: Verify if the old pending booking matches our CURRENT cart.
+            // If they picked new seats or a new showtime, we MUST create a new booking!
+            let needsNewBooking = true;
 
-        if (!bookingResult.success || !bookingResult.data) {
-            setBuyError(bookingResult.error ?? 'Failed to create booking')
+            if (currentBookingId && currentBookingId !== 'null' && currentBookingId !== 'undefined' && savedCartRaw) {
+                const savedCart = JSON.parse(savedCartRaw);
+                
+                // Compare the saved cart with the current Redux state
+                const isSameShowtime = savedCart.showtime?.id === selectedShowtime!.id;
+                const isSameSeats = savedCart.seats?.join(',') === selectedSeatIds.join(',');
+
+                if (isSameShowtime && isSameSeats) {
+                    needsNewBooking = false; // Safe to reuse! (e.g., they returned from Stripe to try a different card)
+                }
+            }
+
+            // Only run createBooking if we actually need a new one
+            if (needsNewBooking) {
+                console.log("Creating fresh booking in database...");
+                const bookingResult = await createBooking(
+                    {
+                        showtime_id: selectedShowtime!.id,
+                        user_id: user.id,
+                        total_amount: totalAmount,
+                        total_seats: selectedSeatIds.length,
+                        discount_id: discountId || undefined,
+                    },
+                    selectedSeatIds,
+                    selectedShowtime!.id
+                )
+
+                if (!bookingResult.success || !bookingResult.data) {
+                    setBuyError(bookingResult.error ?? 'Failed to create booking')
+                    setBuying(false)
+                    return
+                }
+                
+                currentBookingId = bookingResult.data.id;
+
+                if (!currentBookingId) {
+                    setBuyError('Database did not return a valid Booking ID.');
+                    setBuying(false);
+                    return;
+                }
+
+                // Save the NEW valid booking ID and Cart to session storage
+                sessionStorage.setItem('tix_pending_booking_id', currentBookingId as string);
+                sessionStorage.setItem('tix_cart', JSON.stringify({
+                    movie: selectedMovie, showtime: selectedShowtime,
+                    seats: selectedSeatIds, labels: selectedSeatLabels
+                }));
+            }
+
+            // ── Proceed to Stripe as normal ──
+            const stripeResult = await createStripeCheckoutSession({
+                totalAmount,
+                movieName: selectedMovie!.name,
+                seatLabels: selectedSeatLabels.join(', '),
+                bookingId: currentBookingId as string,
+                showtimeId: selectedShowtime!.id,
+                urlMovieId: movieId,
+                userId: user.id,
+            })
+
+            if (!stripeResult.success || !stripeResult.url) {
+                setBuyError(stripeResult.error ?? 'Failed to create payment session')
+                setBuying(false)
+                // Do NOT wipe the pending ID here, they might just want to try clicking Buy again
+                return 
+            }
+
+            window.location.href = stripeResult.url
+
+        } catch (err) {
+            console.error("Payment error:", err);
+            setBuyError('Something went wrong. Please try again.')
             setBuying(false)
-            return
         }
-
-        console.log("4. Booking created successfully! Calling Stripe...");
-        const stripeResult = await createStripeCheckoutSession({
-            totalAmount,
-            movieName: selectedMovie!.name,
-            seatLabels: selectedSeatLabels.join(', '),
-            bookingId: bookingResult.data.id,
-            showtimeId: selectedShowtime!.id,
-            userId: user.id,
-        })
-
-        console.log("5. Stripe result:", stripeResult);
-
-        if (!stripeResult.success || !stripeResult.url) {
-            setBuyError(stripeResult.error ?? 'Failed to create payment session')
-            setBuying(false)
-            return
-        }
-
-        console.log("6. Success! Redirecting to:", stripeResult.url);
-        window.location.href = stripeResult.url
-
-    } catch (err) {
-        console.error("❌ CRITICAL ERROR inside handleBuy:", err);
-        setBuyError('Something went wrong. Please try again.')
-        setBuying(false)
     }
-}
+    if (!selectedMovie || !selectedShowtime) return null;
+
     return (
         <div className='mb-30'>
             <div className="px-6 md:px-16 pt-11">
-                <h1 className='text-xl md:text-2xl lg:text-4xl font-bold text-shade-900'>PAYMENT CONFIRMATION</h1>
-                <p className='text-shade-600 text-[12px] md:text-[16px] mt-2'>
-                    Confirm payment for the seat you ordered
-                </p>
+                <div>
+                    <h1 className='text-xl md:text-2xl lg:text-4xl font-bold text-shade-900'>PAYMENT CONFIRMATION</h1>
+                    <p className='text-shade-600 text-[12px] md:text-[16px] mt-2'>
+                        Confirm payment for the seat you ordered
+                    </p>
+                </div>
+                <div>
+                    <span className="text-sm text-shade-600">Complete payment in:</span>
+                    <span className={`text-2xl font-bold ${timeLeft < 60 ? 'text-red-600 animate-pulse' : 'text-royal-blue'}`}>
+                        {formatTime(timeLeft)}
+                    </span>
+                </div>
             </div>
 
             <div className='flex flex-col md:flex-row px-6 md:px-16 gap-8 sm:gap-20 mt-4 sm:mt-20'>
@@ -260,7 +327,7 @@ export default function PaymentPage() {
                     <hr className='w-full h-px text-shade-200' />
 
                     <button
-                        onClick={() => router.back()}
+                        onClick={() => setShowBackModal(true)}
                         className="flex gap-4 text-white cursor-pointer mt-4 sm:mt-15"
                     >
                         <GoArrowLeft className="text-xl sm:text-[24px] text-shade-600" />
@@ -366,36 +433,17 @@ export default function PaymentPage() {
             {showBackModal && (
                 <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50'>
                     <div className='bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-xl'>
-
                         <div className='flex items-center justify-between mb-4'>
                             <h2 className='text-xl font-bold text-shade-900'>Want to go back?</h2>
-                            <button
-                                onClick={() => setShowBackModal(false)}
-                                className='text-shade-400 hover:text-shade-900 text-2xl cursor-pointer'
-                            >
-                                x
-                            </button>
+                            <button onClick={() => setShowBackModal(false)} className='text-shade-400 hover:text-shade-900 text-2xl cursor-pointer'>x</button>
                         </div>
-
-                        <p className='text-shade-600 text-sm mb-6'>
-                            The seats you selected will be released and you will need to select again.
-                        </p>
-
+                        <p className='text-shade-600 text-sm mb-6'>The seats you selected will be released and you will need to select again.</p>
                         <div className='flex gap-3 justify-end'>
-                            <button
-                                onClick={() => setShowBackModal(false)}
-                                className='px-6 py-2.5 border border-shade-300 rounded-xl text-shade-900 hover:bg-shade-100 transition-all cursor-pointer'
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleBackConfirm}
-                                className='px-6 py-2.5 bg-royal-blue text-white font-bold rounded-xl hover:bg-royal-blue-hover transition-all cursor-pointer'
-                            >
-                                Go Back
+                            <button onClick={() => setShowBackModal(false)} className='px-6 py-2.5 border border-shade-300 rounded-xl text-shade-900 hover:bg-shade-100 transition-all cursor-pointer'>Cancel</button>
+                            <button onClick={handleBackConfirm} disabled={buying} className='px-6 py-2.5 bg-royal-blue text-white font-bold rounded-xl hover:bg-royal-blue-hover transition-all cursor-pointer'>
+                                {buying ? 'Cancelling...' : 'Go Back'}
                             </button>
                         </div>
-
                     </div>
                 </div>
             )}
