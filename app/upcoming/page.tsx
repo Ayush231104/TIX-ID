@@ -1,3 +1,4 @@
+'use client'
 import Skeleton from "@/components/ui/Skeleton"
 import { useGetMoviesListQuery } from "@/lib/features/api/moviesApi";
 import Image from "next/image"
