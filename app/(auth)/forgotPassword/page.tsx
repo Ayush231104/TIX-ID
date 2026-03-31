@@ -20,7 +20,7 @@ export default function ForgotPassword() {
       </div>
 
       <button
-                onClick={() => router.back()}
+        onClick={() => router.back()}
         className="absolute top-10 left-10 hidden md:flex items-center gap-4 text-white cursor-pointer hover:opacity-80 transition-opacity z-10"
       >
         <GoArrowLeft className="text-[32px]" />
