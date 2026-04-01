@@ -44,7 +44,7 @@ export async function createStripeCheckoutSession(data: CheckoutData) {
             },
             // Use urlMovieId for the folder path, and bookingId for the query parameter!
             success_url: `${baseUrl}/booking/${data.urlMovieId}/seats/payment/success?bookingId=${data.bookingId}&session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${baseUrl}/booking/${data.urlMovieId}/seats/payment`,
+            cancel_url: `${baseUrl}/booking/${data.urlMovieId}/seats/payment/cancel?bookingId=${data.bookingId}`,
         })
 
         const supabase = await createClient()

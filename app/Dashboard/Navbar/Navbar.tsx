@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { IoMdNotificationsOutline } from "react-icons/io";
 import { HiOutlineMenu } from "react-icons/hi";
 import { useEffect, useState, useRef } from "react";
 import MobileMenu from "./MobileMenu";
@@ -10,6 +9,7 @@ import { createClient } from "@/utils/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { LuLogOut } from "react-icons/lu";
+import Typography from "@/components/ui/Typography";
 
 const supabase = createClient();
 
@@ -78,11 +78,18 @@ export default function Navbar() {
 
         {user ?
           <div className="hidden md:flex items-center gap-6 lg:gap-10">
-            <Link href="/" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Home</Link>
-            <Link href="/movies" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Movies</Link>
-            <Link href="/tickets" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">My Tickets</Link>
-            <Link href="/news" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">TIX ID News</Link>
-            <IoMdNotificationsOutline className="text-2xl " />
+            <Link href="/" >
+              <Typography variant="h4" color="shade-900" className=" hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Home</Typography>
+            </Link>
+            <Link href="/movies">
+              <Typography variant="h4" color="shade-900" className=" hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Movies</Typography>
+            </Link>
+            <Link href="/tickets" >
+              <Typography variant="h4" color="shade-900" className=" hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">My Tickets</Typography>
+            </Link>
+            <Link href="/news" >
+              <Typography variant="h4" color="shade-900" className=" hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">TIX ID News</Typography>
+            </Link>
 
             <div className="relative" ref={dropdownRef}>
               <div
@@ -110,15 +117,26 @@ export default function Navbar() {
           </div>
           :
           <div className="hidden md:flex items-center gap-6 lg:gap-10">
-            <Link href="/" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Home</Link>
-            <Link href="/movies" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Movies</Link>
-            <Link href="/tickets" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">My Tickets</Link>
-            <Link href="/news" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">TIX ID News</Link>
+            <Link href="/" >
+              <Typography variant="h4" color="shade-900" className=" hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Home</Typography>
+            </Link>
+            <Link href="/movies" >
+              <Typography variant="h4" color="shade-900" className=" hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Movies</Typography>
+            </Link>
+            <Link href="/tickets" >
+              <Typography variant="h4" color="shade-900" className=" hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">My Tickets</Typography>
+            </Link>
+            <Link href="/news" >
+              <Typography variant="h4" color="shade-900" className=" hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">TIX ID News</Typography>
+            </Link>
             <div className="w-0.5 h-6 bg-shade-400">
             </div>
-            <IoMdNotificationsOutline className="text-2xl shrink-0" />
-            <Link href="/signup" className="font-medium sm:text-[12px] md:text-[14px] lg:text-[18px] text-shade-900 hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Register Account</Link>
-            <Link href="/login" className="flex items-center justify-center h-12 w-25.25 px-2 py-3 rounded-lg font-medium text-[24px] leading-8 bg-royal-blue-default hover:bg-royal-blue-hover active:bg-royal-blue-while-pressed text-sunshine-yellow">Login</Link>
+            <Link href="/signup" >
+              <Typography variant="h4" color="shade-900" className="hover:text-royal-blue-hover active:text-royal-blue-while-pressed hover:border-b-2 hover:border-b-shade-900">Register Account</Typography>
+            </Link>
+            <Link href="/login" className="flex items-center justify-center h-12 w-25.25 px-2 py-3 rounded-lg font-medium text-[24px] leading-8 bg-royal-blue-default hover:bg-royal-blue-hover active:bg-royal-blue-while-pressed text-sunshine-yellow">
+              <Typography variant="h4" color="sunshine-yellow" className="text-center">Login</Typography>
+            </Link>
           </div>
         }
 

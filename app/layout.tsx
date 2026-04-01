@@ -31,7 +31,7 @@ export default function RootLayout({
     <html lang="en" className={`font-sans ${inter.variable}`}>
       <body
         suppressHydrationWarning
-        className={`${roboto.variable} antialiased max-w-400 m-auto`}
+        className={`${roboto.variable} antialiased`}
       >
         <StoreProvider>
           <Toaster position="bottom-right"/>

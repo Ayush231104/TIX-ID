@@ -189,23 +189,19 @@ export default function PaymentPage() {
             let currentBookingId = sessionStorage.getItem('tix_pending_booking_id');
             const savedCartRaw = sessionStorage.getItem('tix_cart');
 
-            // 🚀 THE FIX: Verify if the old pending booking matches our CURRENT cart.
-            // If they picked new seats or a new showtime, we MUST create a new booking!
             let needsNewBooking = true;
 
             if (currentBookingId && currentBookingId !== 'null' && currentBookingId !== 'undefined' && savedCartRaw) {
                 const savedCart = JSON.parse(savedCartRaw);
                 
-                // Compare the saved cart with the current Redux state
                 const isSameShowtime = savedCart.showtime?.id === selectedShowtime!.id;
                 const isSameSeats = savedCart.seats?.join(',') === selectedSeatIds.join(',');
 
                 if (isSameShowtime && isSameSeats) {
-                    needsNewBooking = false; // Safe to reuse! (e.g., they returned from Stripe to try a different card)
+                    needsNewBooking = false;
                 }
             }
-
-            // Only run createBooking if we actually need a new one
+            
             if (needsNewBooking) {
                 console.log("Creating fresh booking in database...");
                 const bookingResult = await createBooking(

@@ -6,6 +6,8 @@ import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
+import toast from 'react-hot-toast';
+import Typography from '../ui/Typography';
 
 const supabase = createClient();
 
@@ -27,9 +29,11 @@ export default function LoginForm() {
         });
 
         if (error) {
+            toast.error('Email or Password is incorrect. Please try again.');
             setAuthError('Email or Password is incorrect. Please try again.');
             setIsLoading(false);
         } else {
+            toast.success('Login successful! Redirecting...');
             router.push('/');
         }
     };
@@ -39,16 +43,16 @@ export default function LoginForm() {
     return (
         <div className="p-10 sm:px-20 sm:pt-15 md:px-25 md:pt-20">
 
-            <h1 className="text-[28px] md:text-[36px] font-bold text-shade-900 mb-10">
+            <Typography variant="h2" color='shade-900' className='mb-10'>
                 Login to TIX ID
-            </h1>
+            </Typography>
 
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-10 max-w-105.75">
 
                 <div className="flex flex-col">
-                    <label className={`text-[14px] md:text-[18px] font-normal tracking-wide uppercase mb-2 ${hasError ? 'text-red-500' : 'text-shade-900'}`}>
+                    <Typography variant='body-large' className={`tracking-wide uppercase mb-2 ${hasError ? 'text-red-500' : 'text-shade-900'}`}>
                         Email
-                    </label>
+                    </Typography>
                     <input
                         type="email"
                         placeholder="Enter your email"
@@ -58,9 +62,9 @@ export default function LoginForm() {
                 </div>
 
                 <div className="flex flex-col relative">
-                    <label className={`text-[14px] md:text-[18px] font-normal tracking-wide uppercase mb-2 ${hasError ? 'text-red-500' : 'text-shade-900'}`}>
+                    <Typography variant='body-large' className={`tracking-wide uppercase mb-2 ${hasError ? 'text-red-500' : 'text-shade-900'}`}>
                         Password
-                    </label>
+                    </Typography>
                     <div className="relative w-full">
                         <input
                             type={showPassword ? "text" : "password"}
@@ -111,9 +115,9 @@ export default function LoginForm() {
                 </div>
             </form>
 
-            <div className="text-[10px] md:text-[12px] text-black font-normal mt-27">
-                © 2021 TIX ID - PT Nusantara Elang Sejahtera.
-            </div>
+            <Typography variant='body-small' className="text-black mt-27">
+                © 2026 TIX ID. All rights reserved.
+            </Typography>
         </div>
     );
 }

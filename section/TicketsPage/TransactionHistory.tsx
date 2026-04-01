@@ -46,8 +46,8 @@ export default function TransactionHistory({ bookings, category, onSelectTicket 
                   src={showtime.movies.movie_img || '/placeholder-movie.png'} 
                   alt={showtime.movies.name}
                   fill
-                  // 🚀 FIX: Removed grayscale class so it is in full color like the screenshot
                   className="object-cover" 
+                  loading="lazy"
                 />
               </div>
 

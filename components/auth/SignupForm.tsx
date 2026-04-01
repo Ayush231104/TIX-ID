@@ -5,6 +5,7 @@ import { useForm, FieldValues } from 'react-hook-form';
 import { createClient } from '@/utils/supabase/client';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import Link from 'next/link';
+import Typography from '../ui/Typography';
 
 const supabase = createClient();
 
@@ -43,17 +44,14 @@ export default function SignupForm() {
 
   return (
     <div className="p-10 sm:px-20 sm:pt-15 md:px-25 md:pt-20">
-
-      <h1 className="text-[28px] md:text-[36px] font-bold text-shade-900 mb-10">
-        Register TIX ID
-      </h1>
+      <Typography variant='h2' color='shade-900' className='mb-10'>Register TIX ID</Typography>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-10 w-full max-w-105.75">
 
         <div className="flex flex-col">
-          <label className={`text-[14px] md:text-[18px] font-normal tracking-wide uppercase mb-2 ${errors.fullName ? 'text-red-500' : 'text-shade-900'}`}>
+          <Typography variant='body-large' className={`tracking-wide uppercase mb-2 ${errors.fullName ? 'text-red-500' : 'text-shade-900'}`}>
             Full Name
-          </label>
+          </Typography>
           <input
             type="text"
             placeholder="Enter your full name"
@@ -65,9 +63,9 @@ export default function SignupForm() {
 
         {/* Email Input */}
         <div className="flex flex-col">
-          <label className={`text-[14px] md:text-[18px] font-normal tracking-wide uppercase mb-2 ${errors.email ? 'text-red-500' : 'text-shade-900'}`}>
+          <Typography variant='body-large' className={`tracking-wide uppercase mb-2 ${errors.email ? 'text-red-500' : 'text-shade-900'}`}>
             Email
-          </label>
+          </Typography>
           <input
             type="email"
             placeholder="Enter your email"
@@ -79,9 +77,9 @@ export default function SignupForm() {
 
         {/* Password Input */}
         <div className="flex flex-col relative">
-          <label className={`text-[14px] md:text-[18px] font-normal tracking-wide uppercase mb-2 ${errors.password ? 'text-red-500' : 'text-shade-900'}`}>
+          <Typography variant='body-large' className={`tracking-wide uppercase mb-2 ${errors.password ? 'text-red-500' : 'text-shade-900'}`}>
             Password
-          </label>
+          </Typography>
           <div className="relative w-full">
             <input
               type={showPassword ? "text" : "password"}
@@ -117,27 +115,27 @@ export default function SignupForm() {
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full py-4 rounded-[5.07px] text-[20px] mt-6.5 ${hasError ? 'bg-shade-200 text-shade-400 cursor-not-allowed' : 'bg-royal-blue-default hover:bg-royal-blue-hover text-white font-medium'} transition-colors`}
+            className={`w-full py-3 rounded-[5.07px] text-xl mt-6.5 ${hasError ? 'bg-shade-200 text-shade-400 cursor-not-allowed' : 'bg-royal-blue-default hover:bg-royal-blue-hover text-white font-medium'} transition-colors`}
           >
             {isLoading ? 'Processing...' : 'Register Now'}
           </button>
 
-          <div className="text-center text-[11px] md:text-[12px] text-shade-600 my-5">
+          <Typography variant='body-small' className="text-shade-600 my-5">
             Already have an account?
-          </div>
+          </Typography>
 
           <Link
             href="/login"
-            className={`w-full block text-center px-2 py-3 rounded-[5.07px] font-medium text-[20px] border border-shade-600 text-royal-blue hover:bg-royal-blue-hover hover:text-white active:text-white active:bg-royal-blue-while-pressed transition-colors ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
+            className={`w-full block text-center px-2 py-3 rounded-[5.07px] font-medium text-xl border border-shade-600 text-royal-blue hover:bg-royal-blue-hover hover:text-white active:text-white active:bg-royal-blue-while-pressed transition-colors ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
           >
             Login Now
           </Link>
         </div>
       </form>
 
-      <div className="text-[10px] md:text-[12px] text-shade-900 font-medium mt-27">
-        © 2021 TIX ID - PT Nusantara Elang Sejahtera.
-      </div>
+      <Typography variant='body-small' className="text-black mt-27">
+        © 2026 TIX ID. All rights reserved.
+      </Typography>
     </div>
   );
 }

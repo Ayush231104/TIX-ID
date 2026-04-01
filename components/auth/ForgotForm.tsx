@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm, FieldValues } from 'react-hook-form';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
+import Typography from '../ui/Typography';
 
 const supabase = createClient();
 
@@ -32,15 +33,13 @@ export default function ForgotForm() {
 
     return (
         <div className="px-8 py-10 md:px-25 md:py-20">
-            <h1 className="text-[28px] md:text-[36px] font-bold text-shade-900 mb-10">
-                Forgot Password
-            </h1>
+            <Typography variant="h2" color='shade-900' className='mb-3 md:mb-6'>Forgot Password</Typography>
 
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-8">
                 <div className="flex flex-col">
-                    <label className={`text-[14px] md:text-[18px] font-normal tracking-wide uppercase mb-2 ${errors.email ? 'text-red-500' : 'text-shade-900'}`}>
+                    <Typography variant='body-large' className={`racking-wide uppercase mb-2 ${errors.email ? 'text-red-500' : 'text-shade-900'}`}>
                         Email
-                    </label>
+                    </Typography>
                     <input
                         type="email"
                         placeholder="Enter your email"
@@ -55,7 +54,7 @@ export default function ForgotForm() {
                         {statusMessage.text}
                     </div>
                 )}
-                
+
                 <div className="mt-2">
                     <button
                         type="submit"
@@ -74,9 +73,9 @@ export default function ForgotForm() {
                 </div>
             </form>
 
-            <div className="text-[10px] md:text-[12px] text-shade-900 font-medium mt-27">
-                © 2021 TIX ID - PT Nusantara Elang Sejahtera.
-            </div>
+            <Typography variant='body-small' className="text-black mt-27">
+                © 2026 TIX ID. All rights reserved.
+            </Typography>
         </div>
     );
 }

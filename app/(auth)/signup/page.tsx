@@ -1,42 +1,10 @@
-'use client'
 import SignupForm from '@/components/auth/SignupForm';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { GoArrowLeft } from 'react-icons/go';
+import AuthLayout from '@/components/auth/AuthLayout';
 
 export default function Signup() {
-    const router = useRouter()
-    return (
-        <div className="relative w-full min-h-screen flex items-center justify-center md:justify-end bg-black px-4 md:pr-16 lg:pr-30 py-12">
-            <div className="absolute inset-0 z-0">
-                <Image
-                    src="/images/register/signup.png"
-                    alt="Signup background"
-                    fill
-                    className="object-cover"
-                    priority
-                />
-            </div>
-
-            <button
-                onClick={() => router.back()}
-                className="absolute top-10 left-10 hidden md:flex items-center gap-4 text-white cursor-pointer hover:opacity-80 transition-opacity z-10"
-            >
-                <GoArrowLeft className="text-2xl" />
-                <span className="font-bold text-[24px]">Return</span>
-            </button>
-
-            <div className="w-full md:w-164 bg-white shadow-2xl z-10 relative rounded-sm">
-                <button
-                    onClick={() => router.back()}
-                    className="flex md:hidden items-center gap-3 text-shade-900 cursor-pointer hover:opacity-80 transition-opacity p-8 pb-0"
-                >
-                    <GoArrowLeft className="text-2xl" />
-                    <span className="font-bold text-[24px]">Return</span>
-                </button>
-
-                <SignupForm />
-            </div>
-        </div>
-    );
+  return (
+    <AuthLayout bgImage="/images/register/signup.png" bgAlt="Signup background">
+      <SignupForm />
+    </AuthLayout>
+  );
 }

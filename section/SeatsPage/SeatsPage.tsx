@@ -13,7 +13,10 @@ import toast from 'react-hot-toast'
 
 const supabase = createClient()
 
-// Legend item
+const rowToLetter = (row: number) => String.fromCharCode(64 + row)
+const getSeatLabel = (seat: SeatWithStatus) => `${rowToLetter(seat.seat_row)}${seat.seat_col}`
+
+
 function LegendItem({ color, label }: { color: string; label: string }) {
     return (
         <div className='flex items-center gap-2'>
@@ -23,7 +26,6 @@ function LegendItem({ color, label }: { color: string; label: string }) {
     )
 }
 
-// SeatsPage
 export default function SeatsPage() {
     const router = useRouter()
     const params = useParams()
@@ -43,8 +45,9 @@ export default function SeatsPage() {
 
     const pendingRef = useRef<Set<string>>(new Set())
 
+    const isProceedingRef = useRef(false)
+
     // ── RTK Query Hooks ──
-    // FIX: Safely fallback to empty strings to satisfy strict TypeScript
     const {
         data: seats = [],
         isLoading,
@@ -86,11 +89,9 @@ export default function SeatsPage() {
         if (backupRaw) {
             const backup = JSON.parse(backupRaw)
 
-            // Restore the Movie and Showtime
             dispatch(setSelectedMovie(backup.movie))
             dispatch(setSelectedShowtime(backup.showtime))
 
-            // Restore the Seats they had clicked!
             backup.seatIds.forEach((id: string, index: number) => {
                 dispatch(toggleSeat({ id, label: backup.seatLabels[index] }))
             })
@@ -130,7 +131,7 @@ export default function SeatsPage() {
 
     useEffect(() => {
         return () => {
-            if (showtimeRef.current?.id && seatIdsRef.current.length > 0) {
+            if (!isProceedingRef.current && showtimeRef.current?.id && seatIdsRef.current.length > 0) {
                 releaseSeatsAction({ showtimeId: showtimeRef.current.id, seatIds: seatIdsRef.current })
             }
         }
@@ -142,12 +143,7 @@ export default function SeatsPage() {
             await releaseSeatsAction({ showtimeId: selectedShowtime.id, seatIds: selectedSeatIds });
         }
         dispatch(setSelectedShowtime(newShowtime))
-        // FIX: Added releaseSeatsAction to dependencies to satisfy React Compiler
     }, [dispatch, selectedShowtime, selectedSeatIds, releaseSeatsAction])
-
-    // Handle seat click — optimistic update
-    const rowToLetter = (row: number) => String.fromCharCode(64 + row)
-    const getSeatLabel = (seat: SeatWithStatus) => `${rowToLetter(seat.seat_row)}${seat.seat_col}`
 
     const handleSeatClick = useCallback(async (seat: SeatWithStatus) => {
         if (seat.is_booked) return
@@ -161,7 +157,6 @@ export default function SeatsPage() {
         const label = getSeatLabel(seat)
         const alreadySelected = selectedSeatIds.includes(seat.id)
 
-        // 🚀 NEW: FIFO (First-In, First-Out) Queue Logic
         let oldestSeatId: string | null = null;
         let oldestSeatLabel: string | null = null;
 
@@ -178,8 +173,8 @@ export default function SeatsPage() {
         }
 
         // ── Optimistic — instant UI update ──
-        dispatch(toggleSeat({ id: seat.id, label })); // Add the newly clicked seat
-
+        dispatch(toggleSeat({ id: seat.id, label })); 
+        
         if (oldestSeatId && oldestSeatLabel) {
             dispatch(toggleSeat({ id: oldestSeatId, label: oldestSeatLabel })); // Remove the oldest seat
         }
@@ -208,43 +203,8 @@ export default function SeatsPage() {
         }
 
         pendingRef.current.delete(seat.id)
-    }, [dispatch, selectedShowtime, selectedSeatIds, selectedSeatLabels, currentUserId, router, fetchSeats, lockSeatsAction, releaseSeatsAction, getSeatLabel])
+    }, [dispatch, selectedShowtime, selectedSeatIds, selectedSeatLabels, currentUserId, router, fetchSeats, lockSeatsAction, releaseSeatsAction])
 
-    // const handleSeatClick = useCallback(async (seat: SeatWithStatus) => {
-    //     if (seat.is_booked) return
-    //     if (seat.is_locked && seat.locked_by_user_id !== currentUserId) return
-    //     if (!selectedShowtime?.id) return
-    //     if (!currentUserId) {
-    //         router.push('/login')
-    //         return
-    //     }
-
-    //     const label = getSeatLabel(seat)
-    //     const alreadySelected = selectedSeatIds.includes(seat.id)
-
-    //     if (!alreadySelected && selectedSeatIds.length >= 10) {
-    //         alert("You can only select up to 10 seats per transaction.");
-    //         return;
-    //     }
-
-    //     // ── Optimistic — instant UI update ──
-    //     dispatch(toggleSeat({ id: seat.id, label }))
-    //     pendingRef.current.add(seat.id)
-
-    //     if (alreadySelected) {
-    //         await releaseSeatsAction({ showtimeId: selectedShowtime.id, seatIds: [seat.id] });
-    //     } else {
-    //         const result = await lockSeatsAction({ showtimeId: selectedShowtime.id, seatIds: [seat.id], userId: currentUserId });
-    //         // RTK Query mutations return { data } on success, or { error } on failure
-    //         if (result.error) {
-    //             dispatch(toggleSeat({ id: seat.id, label }))
-    //             await fetchSeats()
-    //         }
-    //     }
-
-    //     pendingRef.current.delete(seat.id)
-    //     // FIX: Added lock/release actions to dependencies
-    // }, [dispatch, selectedShowtime, selectedSeatIds, currentUserId, router, fetchSeats, lockSeatsAction, releaseSeatsAction])
 
     // Handle Confirm
     const handleConfirm = async () => {
@@ -254,14 +214,22 @@ export default function SeatsPage() {
             return
         }
         setConfirming(true)
+        isProceedingRef.current = true
         router.push(`/booking/${movieId}/seats/payment`)
         setConfirming(false)
     }
 
+    // Handle back button
+    const handleBack = useCallback(async () => {
+        if (selectedShowtime?.id && selectedSeatIds.length > 0) {
+            await releaseSeatsAction({showtimeId: selectedShowtime.id, seatIds: selectedSeatIds });
+        }
+       router.replace(`/booking/${movieId}`)
+    }, [selectedShowtime, selectedSeatIds, releaseSeatsAction, router, movieId]);
+
     // Guards
     if (!selectedShowtime) return null
 
-    // FIX: Changed from 'loading' to 'isLoading' (from RTK Query)
     if (isLoading) {
         return (
             <div className='flex items-center justify-center min-h-screen'>
@@ -331,7 +299,7 @@ export default function SeatsPage() {
 
                     <div className='w-1/2 flex flex-col lg:flex-row gap-3 justify-center pt-4'>
                         <button
-                            onClick={() => router.back()}
+                            onClick={handleBack}
                             className='w-40 sm:w-50 h-12 px-2 py-3 font-medium text-lg sm:text-xl border border-shade-600 rounded-[5px] text-shade-600 hover:bg-royal-blue-hover hover:text-shade-200 active:bg-royal-blue-while-pressed  transition-all cursor-pointer'
                         >
                             Back

@@ -77,6 +77,7 @@ export default function ActiveTickets({ bookings, category, onSelectTicket }: Ac
                   alt={showtime.movies.name}
                   fill
                   className="object-cover"
+                  loading="lazy"
                 />
               </div>
 

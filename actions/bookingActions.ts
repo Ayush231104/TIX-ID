@@ -48,7 +48,6 @@ export async function getShowtimes(movieId: string, date?: string) {
   return { success: true, data: data as unknown as ShowtimeForBooking[], error: null };
 }
 
-
 // export async function getSeatsWithStatus(screenId: string, showtimeId: string) {
 //   const supabase = await createClient()
 
@@ -60,6 +59,7 @@ export async function getShowtimes(movieId: string, date?: string) {
 
 //   if (seatsError) return { success: false, error: seatsError.message }
 
+//   // 1. Get temporary UI locks (Yellow)
 //   const { data: lockedSeats } = await supabase
 //     .from('seat_locked')
 //     .select('seat_id, user_id')
@@ -67,17 +67,43 @@ export async function getShowtimes(movieId: string, date?: string) {
 //     .eq('reservation_status', 'hold')
 //     .gt('expires_at', new Date().toISOString())
 
-//   const blockedStatuses: ("reserved" | "confirmed" | "cancelled")[] = ['confirmed', 'reserved'];
+//   // 2. Get actual bookings (Reserved & Confirmed)
 //   const { data: bookedSeats } = await supabase
 //     .from('booking_seats')
-//     .select('seat_id')
+//     .select(`
+//       seat_id,
+//       booking_seat_status,
+//       bookings ( user_id )
+//     `)
 //     .eq('showtime_id', showtimeId)
-//     .in('booking_seat_status', blockedStatuses) 
+//     .in('booking_seat_status', ['confirmed', 'reserved'])
     
-//   // map seat_id → user_id for locked seats
-//   const lockedMap = new Map(lockedSeats?.map((s) => [s.seat_id, s.user_id]) ?? [])
-//   const bookedIds = new Set(bookedSeats?.map((s) => s.seat_id) ?? [])
+//   // 3. Map them intelligently
+//   const lockedMap = new Map<string, string>()
+//   const bookedIds = new Set<string>()
 
+//   // Add temporary UI locks to the lock map
+//   lockedSeats?.forEach((s) => {
+//     if (s.seat_id && s.user_id) {
+//       lockedMap.set(s.seat_id, s.user_id)
+//     }
+//   })
+
+//   // Route the booking seats to the correct color bucket
+//   bookedSeats?.forEach((s) => {
+//     if (!s.seat_id) return;
+
+//     if (s.booking_seat_status === 'confirmed') {
+//       bookedIds.add(s.seat_id)
+//     } else if (s.booking_seat_status === 'reserved') {
+//       const userId = Array.isArray(s.bookings) ? s.bookings[0]?.user_id : s.bookings?.user_id;
+//       if (userId) {
+//         lockedMap.set(s.seat_id, userId);
+//       }
+//     }
+//   })
+
+//   // 4. Build final seat array
 //   const seatsWithStatus = seats?.map((seat) => ({
 //     ...seat,
 //     is_locked: lockedMap.has(seat.id),
@@ -87,6 +113,7 @@ export async function getShowtimes(movieId: string, date?: string) {
 
 //   return { success: true, data: seatsWithStatus }
 // }
+
 export async function getSeatsWithStatus(screenId: string, showtimeId: string) {
   const supabase = await createClient()
 
@@ -135,11 +162,13 @@ export async function getSeatsWithStatus(screenId: string, showtimeId: string) {
     if (s.booking_seat_status === 'confirmed') {
       bookedIds.add(s.seat_id) // Paid -> Royal Blue
     } else if (s.booking_seat_status === 'reserved') {
-      // Pending Stripe -> Treat as Locked (Yellow)
-      // Extract user_id from the joined bookings table safely
+
       const userId = Array.isArray(s.bookings) ? s.bookings[0]?.user_id : s.bookings?.user_id;
+      
       if (userId) {
         lockedMap.set(s.seat_id, userId);
+      } else {
+        lockedMap.set(s.seat_id, 'locked-by-another-user');
       }
     }
   })
@@ -162,7 +191,7 @@ export async function lockSeats(
 ) {
   const supabase = await createClient();
 
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 mins
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); 
 
   const lockData = seatIds.map((seatId) => ({
     showtime_id: showtimeId,
