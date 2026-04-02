@@ -65,7 +65,7 @@ export default function ArticlePage() {
         </div>
 
         {/* Related News Grid Skeleton */}
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
+        <div className="w-full flex flex-row gap-5 mt-12">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="w-full flex flex-col gap-4">
               <Skeleton w="w-full" h="h-60" rounded="rounded-xl" />
@@ -148,27 +148,31 @@ export default function ArticlePage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
+      
+        <div className="flex justify-start overflow-x-auto gap-5 mt-12 pb-8 no-scrollbar">
           {relatedNews.map((item) => (
-            <Link href={`${item.id}`} key={item.id}>
-              <div className="w-full">
-                <div className='w-full h-60 relative'>
+            <Link 
+              href={`${item.id}`} 
+              key={item.id}
+              className=" w-[85vw] md:w-90 lg:w-104 "
+            >
+              <div className="w-full flex flex-col h-full">
+                <div className='w-[85vw] md:w-90 lg:w-104 h-60 relative'>
                   <Image
                     src={item.img}
                     alt={item.title}
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    sizes="(max-width: 768px) 85vw, 350px"
                     fill
                     className='object-cover rounded-xl'
-                    priority
                   />
                 </div>
-                <button className='border px-3 py-2 mt-4 sm:mt-10'>
+                <button className='w-fit border border-shade-300 rounded-md px-3 py-2 mt-4 sm:mt-6'>
                   <Typography variant='body-small' color='shade-900'>{item.category}</Typography>
                 </button>
-                <Typography variant='h3' color='shade-900' className="sm:my-4.5">
+                <Typography variant='h3' color='shade-900' className="my-3 line-clamp-2">
                   {item.title}
                 </Typography>
-                <p className="text-[16px] font-normal leading-6 text-shade-600">
+                <p className="text-[16px] font-normal leading-6 text-shade-600 mt-auto">
                   {new Date(item.release_date).toLocaleDateString('en-GB', {
                     day: '2-digit',
                     month: 'short',

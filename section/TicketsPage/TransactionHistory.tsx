@@ -38,9 +38,8 @@ export default function TransactionHistory({ bookings, category, onSelectTicket 
         const isSuccess = booking.booking_status === 'paid';
         
         return (
-          // 🚀 FIX: Removed opacity-85 here
           <div key={booking.id} className="border-b border-shade-200 pb-6">
-            <div className="flex flex-col sm:flex-row gap-6">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
               <div className="w-32 h-44 shrink-0 relative rounded-lg overflow-hidden bg-shade-100">
                 <Image 
                   src={showtime.movies.movie_img || '/placeholder-movie.png'} 
@@ -63,7 +62,6 @@ export default function TransactionHistory({ bookings, category, onSelectTicket 
                 </div>
               </div>
 
-              {/* 🚀 FIX: Kept the buttons exactly as requested */}
               <div className="flex items-center justify-start sm:justify-end mt-4 sm:mt-0">
                 <button 
                   onClick={() => onSelectTicket(booking)}

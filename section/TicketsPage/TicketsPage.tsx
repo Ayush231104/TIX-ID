@@ -75,7 +75,7 @@ export default function TicketsPage({ initialBookings }: TicketsPageProps) {
       
       {!selectedTicket && (
         <div className="w-full md:w-64 bg-[#F5F6F8] border-r border-shade-200 shrink-0">
-          <div className="pt-8">
+          <div className="py-4 sm:pt-8">
             <button
               onClick={() => { setActiveTab('active'); setSelectedTicket(null); }}
               className={`flex items-center gap-4 w-full px-8 py-4 text-left font-medium transition-colors
@@ -113,7 +113,7 @@ export default function TicketsPage({ initialBookings }: TicketsPageProps) {
             <h1 className="text-3xl font-bold text-shade-900 mb-2">My Tickets</h1>
             <p className="text-shade-600 mb-8">List of tickets and transactions you have made</p>
 
-            <div className="flex gap-4 mb-10">
+            {/* <div className="flex gap-4 mb-10">
               {(['Film', 'Event', 'Voucher'] as TicketCategory[]).map((cat) => (
                 <button
                   key={cat}
@@ -127,7 +127,7 @@ export default function TicketsPage({ initialBookings }: TicketsPageProps) {
                   {cat}
                 </button>
               ))}
-            </div>
+            </div> */}
 
             {activeTab === 'active' ? (
               <ActiveTickets 

@@ -70,7 +70,7 @@ export default function ActiveTickets({ bookings, category, onSelectTicket }: Ac
             onClick={() => onSelectTicket(booking)}
             className="border-b border-shade-200 pb-6 cursor-pointer hover:bg-shade-50 transition-colors rounded-lg p-2 -mx-2"
           >
-            <div className="flex flex-col sm:flex-row gap-6">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
               <div className="w-32 h-44 shrink-0 relative rounded-lg overflow-hidden bg-shade-100">
                 <Image 
                   src={showtime.movies.movie_img || '/placeholder-movie.png'} 
