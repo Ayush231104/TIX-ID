@@ -10,6 +10,7 @@ import { useState} from 'react';
 import Link from 'next/link';
 import Skeleton from '@/components/ui/Skeleton';
 import { useGetMoviesListQuery } from '@/lib/features/api/moviesApi';
+import Typography from '@/components/ui/Typography';
 
 const Hero = () => {
   const [showForm, setShowForm] = useState(false);
@@ -17,7 +18,7 @@ const Hero = () => {
   const { data: movies = [], isLoading } = useGetMoviesListQuery({ limit: 4 });
 
   return (
-    <div className="w-full my-16 mx-auto px-8 sm:px-8 md:px-12 lg:px-16 relative">
+    <div className="w-full md:my-16 mx-auto px-8 sm:px-8 md:px-12 lg:px-16 relative">
       <button
         onClick={() => setShowForm(!showForm)}
         className="hidden bg-royal-blue-default hover:bg-royal-blue-hover active:bg-royal-blue-while-pressed text-white px-4 py-2 rounded mb-4"
@@ -89,13 +90,13 @@ const Hero = () => {
                         />
                       </div>
                     </div>
-                    <div className='text-center text-xl md:text-2xl lg:text-4xl sm:font-medium md:font-bold'>
+                    <Typography variant="h2" className='text-center'>
                       {movie.name}
-                    </div>
+                    </Typography>
                     <div className='flex gap-3'>
-                      <button className='bg-linear-to-r from-xxi-gold to-xxi-gold-dark text-white rounded-[5px] py-1 px-3 text-xs'>XXI</button>
-                      <button className='bg-cgv-red text-white rounded-[5px] py-1 px-3 text-xs'>CGV</button>
-                      <button className='bg-cinepolis-blue text-white rounded-[5px] py-1 px-3 text-xs'>CINÉPOLIS</button>
+                      <button className='bg-linear-to-r from-xxi-gold to-xxi-gold-dark text-white rounded-sm py-1 px-3 text-xs'>XXI</button>
+                      <button className='bg-cgv-red text-white rounded-sm py-1 px-3 text-xs'>CGV</button>
+                      <button className='bg-cinepolis-blue text-white rounded-sm py-1 px-3 text-xs'>CINÉPOLIS</button>
                     </div>
                   </div>
                 </Link>

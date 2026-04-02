@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Skeleton from '@/components/ui/Skeleton';
 import { useGetNewsQuery } from '@/lib/features/api/newsApi';
+import Typography from '@/components/ui/Typography';
 
 export default function NewsCards() {
   const { data : news = [], isLoading, isError} = useGetNewsQuery({ limit: 3});
@@ -32,7 +33,7 @@ export default function NewsCards() {
         )
         : isError
           ? (<div className="flex justify-center items-center h-96">
-            <p className="text-gray-500 text-lg">No news found</p>
+            <Typography variant='body-large' color='shade-500'>No news found</Typography>
           </div>)
           : (
             news.map((item) => (
@@ -48,19 +49,21 @@ export default function NewsCards() {
                       priority
                     />
                   </div>
-                  <button className='border px-3 py-2 text-xs font-normal mt-10'>
-                    {item.category}
+                  <button className='border mt-10'>
+                    <Typography variant='body-small' color='shade-900'>
+                      {item.category}
+                    </Typography>
                   </button>
-                  <h2 className="text-2xl font-medium leading-8 my-4.5 text-shade-900">
+                  <Typography variant='h3' color='shade-900' className="my-4.5">
                     {item.title}
-                  </h2>
-                  <p className="text-[16px] font-normal leading-6 text-shade-600">
+                  </Typography>
+                  <Typography color='shade-600'>
                     {new Date(item.release_date).toLocaleDateString('en-GB', {
                       day: '2-digit',
                       month: 'short',
                       year: 'numeric'
                     })} | TIX ID
-                  </p>
+                  </Typography>
                 </div>
               </Link>
             ))

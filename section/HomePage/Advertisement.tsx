@@ -20,7 +20,7 @@ const advertismentsImg = [
 
 const Advertisement = () => {
     return (
-        <div className='relative w-full px-4 sm:px-8 mt-16'>
+        <div className='relative w-full px-4 sm:px-8 mt-8 md:mt-16'>
             <div className="custom-prev1 absolute left-8 top-1/2  z-10 -translate-y-1/2 cursor-pointer bg-white text-black size-8 sm:size-14  md:size-16 flex items-center justify-center rounded-full transition shadow-md shadow-gray-300">
                 <FaChevronLeft size={20} />
             </div>

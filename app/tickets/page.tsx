@@ -16,7 +16,7 @@ export default async function MyTicketsRoute() {
   const bookings = (res.success && res.data ? res.data : []) as unknown as EnrichedBooking[];
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className=" bg-white">
       <TicketsPage initialBookings={bookings} />
     </main>
   );

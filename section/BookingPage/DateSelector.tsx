@@ -38,7 +38,7 @@ export default function DateSelector({
   }
 
   return (
-    <div className='w-full max-w-145 overflow-hidden mt-6 relative px-8'>
+    <div className='w-full max-w-145 overflow-hidden mt-4 sm:mt-6 relative px-8'>
       <Swiper
         modules={[Navigation, FreeMode]}
         navigation={{

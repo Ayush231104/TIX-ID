@@ -34,13 +34,12 @@ export default function Bookshow({
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date)
     onDateSelect(date)
-    // console.log('Selected date in Bookshow:', date)
   }
 
   return (
     <div className='mt-6 pl-8 md:pl-0'>
       <div>
-        <h1 className='text-4xl font-bold mb-4.5 text-shade-900'>TIMETABLE</h1>
+        <h1 className='text-4xl font-bold sm:mb-4.5 text-shade-900'>TIMETABLE</h1>
         <p className='text-gray-600 text-[16px] font-normal'>Select the cinema schedule you want to watch</p>
       </div>
 
@@ -50,13 +49,12 @@ export default function Bookshow({
       </div>
 
       <div>
-        {/* <LocationFilter /> */}
         <LocationFilter
           selectedCityId={selectedCityId}
           onCitySelect={setSelectedCityId}
         />
 
-        <div className="flex flex-col sm:flex-row  md:flex-col lg:flex-row lg:items-center gap-5 lg:gap-10 mt-5 lg:mt-8">
+        <div className="flex flex-col sm:flex-row  md:flex-col lg:flex-row lg:items-center gap-5 lg:gap-10 mt-4 md:mt-8">
           <div>
             <SearchFilter
               value={searchText}

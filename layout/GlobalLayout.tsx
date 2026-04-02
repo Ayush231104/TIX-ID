@@ -11,9 +11,7 @@ export default function GlobalLayout({ children }: { children: React.ReactNode }
 
   return (
     <div className={`min-h-screen flex flex-col w-full ${!isAuthPage ? 'max-w-400 mx-auto' : ''}`}>
-      <div>
-        {!isAuthPage && <Navbar />}
-      </div>
+      {!isAuthPage && <Navbar />}
       <div className='grow'>
         {children}
       </div>

@@ -93,10 +93,10 @@ export default function PaymentSuccessPage() {
                         Transaction details have been sent to your email, you can also check the ticket details in my tickets on the website or your smartphone.
                     </p>
                     <Link
-                        href="/tickets" 
+                        href={`/tickets?ticketId=${bookingId}`} 
                         className='px-10 py-3 border-2 border-shade-300 text-shade-900 font-bold rounded-lg hover:bg-shade-100 transition-all cursor-pointer'
                     >
-                        Check Tickets
+                        Check Transaction Details
                     </Link>
                 </>
             )}

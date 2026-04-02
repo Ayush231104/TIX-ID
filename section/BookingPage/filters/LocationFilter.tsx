@@ -61,7 +61,7 @@ export default function LocationFilter(
         setIsOpen(false)
     }
     return (
-        <div ref={ref} className="relative mt-4">
+        <div ref={ref} className="relative sm:mt-4">
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className='flex items-center gap-2 px-4 py-2 text-[14px] font-medium text-shade-900 hover:bg-shade-100 rounded-lg transition cursor-pointer'

@@ -362,11 +362,11 @@ export default function ShowtimeSection({
 	}
 
 	return (
-		<div className='my-11 flex flex-col gap-11'>
+		<div className='my-6 sm:my-11 flex flex-col gap-6 sm:gap-11'>
 			{grouped.map(({ theater, screens }) => (
 				<div key={theater.id}>
 
-					<div className='sm:flex items-center justify-between mb-1 w-full'>
+					<div className='flex items-center justify-between mb-1 w-full'>
 						<div className='flex items-center gap-2'>
 							<span className='flex items-center justify-center shrink-0 text-pastel-yellow bg-royal-blue rounded-full size-8 text-lg'>
 								<ImStarFull className='shrink-0' />
@@ -379,13 +379,13 @@ export default function ShowtimeSection({
 						{theater.brands?.name && (
 							<div
 								className={`
-                  text-white w-fit text-xs font-semibold px-2 py-1 mt-3 sm:mt-0 rounded-md uppercase
-                  ${theater.brands.name.toUpperCase() === 'CGV' ? 'bg-cgv-red' :
+                 					text-white w-fit text-xs font-semibold px-2 py-1 mt-3 sm:mt-0 rounded-md uppercase
+                  					${theater.brands.name.toUpperCase() === 'CGV' ? 'bg-cgv-red' :
 										theater.brands.name.toUpperCase() === 'CINEPOLIS' ? 'bg-cinepolis-blue' :
 											theater.brands.name.toUpperCase() === 'XXI' ? 'bg-linear-to-r from-xxi-gold to-xxi-gold-dark' :
 												theater.brands.name.toUpperCase() === 'PVR' ? 'bg-purple-700' :
 													theater.brands.name.toUpperCase() === 'INOX' ? 'bg-blue-600' : 'bg-gray-400'}
-                `}
+                				`}
 							>
 								{theater.brands.name}
 							</div>

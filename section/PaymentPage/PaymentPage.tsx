@@ -21,6 +21,7 @@ import {
 } from '@/lib/features/slice/bookingSlice';
 import toast from 'react-hot-toast';
 import { cancelPaymentAndBooking } from '@/actions/paymentVerification';
+import Typography from '@/components/ui/Typography';
 
 const supabase = createClient();
 
@@ -61,7 +62,8 @@ export default function PaymentPage() {
     const seatPrice = selectedShowtime?.price ?? 0
     const seatCount = selectedSeatIds.length
 
-    // ── Local State ──
+    const totalPrice = (seatPrice * seatCount) + (serviceFee * seatCount)
+
     const [showBackModal, setShowBackModal] = useState(false)
     const [discountInput, setDiscountInput] = useState('')
     const [discountError, setDiscountError] = useState('')
@@ -69,15 +71,7 @@ export default function PaymentPage() {
     const [buying, setBuying] = useState(false)
     const [buyError, setBuyError] = useState('')
 
-    const [timeLeft, setTimeLeft] = useState(600);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-
-    const formatTime = (seconds: number) => {
-        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-        const s = (seconds % 60).toString().padStart(2, '0');
-        return `${m}:${s}`;
-    };
 
     const handleTimeout = async () => {
         toast.error("Time expired! Your seats have been released.");
@@ -95,7 +89,6 @@ export default function PaymentPage() {
         router.push(`/booking/${movieId}`);
     }
 
-        // HYDRATION GUARD: Survives Refresh & Stripe "Back" Button
     useEffect(() => {
         if (!selectedMovie && !selectedShowtime && selectedSeatIds.length > 0) {
             const savedCartRaw = sessionStorage.getItem('tix_cart');
@@ -112,17 +105,7 @@ export default function PaymentPage() {
             }
         }
 
-        timerRef.current = setInterval(() => {
-            setTimeLeft((prev) => {
-                if (prev <= 1) {
-                    clearInterval(timerRef.current!);
-                    handleTimeout();
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
+    
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
         };
@@ -130,14 +113,12 @@ export default function PaymentPage() {
 
     // BUTTON HANDLERS
     const handleBackConfirm = async () => {
-        setBuying(true); // Disable buttons while cancelling
+        setBuying(true);
         const currentBookingId = sessionStorage.getItem('tix_pending_booking_id');
 
         if (currentBookingId) {
-            // IF THEY ALREADY CLICKED "BUY TICKET", WE MUST CANCEL THE REAL BOOKING!
             await cancelPaymentAndBooking(currentBookingId);
         } else if (selectedShowtime?.id && selectedSeatIds.length > 0) {
-            // IF THEY NEVER CLICKED "BUY TICKET", JUST RELEASE THE TEMPORARY LOCK
             await releaseSeats(selectedShowtime.id, selectedSeatIds)
         }
 
@@ -230,7 +211,6 @@ export default function PaymentPage() {
                     return;
                 }
 
-                // Save the NEW valid booking ID and Cart to session storage
                 sessionStorage.setItem('tix_pending_booking_id', currentBookingId as string);
                 sessionStorage.setItem('tix_cart', JSON.stringify({
                     movie: selectedMovie, showtime: selectedShowtime,
@@ -238,7 +218,6 @@ export default function PaymentPage() {
                 }));
             }
 
-            // ── Proceed to Stripe as normal ──
             const stripeResult = await createStripeCheckoutSession({
                 totalAmount,
                 movieName: selectedMovie!.name,
@@ -252,7 +231,6 @@ export default function PaymentPage() {
             if (!stripeResult.success || !stripeResult.url) {
                 setBuyError(stripeResult.error ?? 'Failed to create payment session')
                 setBuying(false)
-                // Do NOT wipe the pending ID here, they might just want to try clicking Buy again
                 return 
             }
 
@@ -270,61 +248,55 @@ export default function PaymentPage() {
         <div className='mb-30'>
             <div className="px-6 md:px-16 pt-11">
                 <div>
-                    <h1 className='text-xl md:text-2xl lg:text-4xl font-bold text-shade-900'>PAYMENT CONFIRMATION</h1>
-                    <p className='text-shade-600 text-[12px] md:text-[16px] mt-2'>
+                    <Typography variant='h2' color='shade-900'>PAYMENT CONFIRMATION</Typography>
+                    <Typography color='shade-600' className='mt-2'>
                         Confirm payment for the seat you ordered
-                    </p>
-                </div>
-                <div>
-                    <span className="text-sm text-shade-600">Complete payment in:</span>
-                    <span className={`text-2xl font-bold ${timeLeft < 60 ? 'text-red-600 animate-pulse' : 'text-royal-blue'}`}>
-                        {formatTime(timeLeft)}
-                    </span>
+                    </Typography>
                 </div>
             </div>
 
             <div className='flex flex-col md:flex-row px-6 md:px-16 gap-8 sm:gap-20 mt-4 sm:mt-20'>
                 <div className='max-w-106 sm:w-106'>
-                    <div className='text-shade-900 font-medium text-lg sm:text-2xl leading-8'>Schedule Details</div>
+                    <Typography variant='h3' color='shade-900'>Schedule Details</Typography>
 
-                    <div className='text-shade-700 font-normal text-xs sm:text-[16px] mb-2 mt-4'>Movie Title</div>
-                    <div className='text-shade-900 font-medium text-lg sm:text-2xl sm:mb-4'>
+                    <Typography color='shade-700' className='mb-2 mt-4'>Movie Title</Typography>
+                    <Typography variant='h3' color='shade-900' className='sm:mb-4'>
                         {selectedMovie?.name}
-                    </div>
+                    </Typography>
                     <hr className='w-full h-px text-shade-200' />
 
-                    <div className='text-shade-700 font-normal text-xs sm:text-[16px] mb-2 mt-4'>Date</div>
-                    <div className='text-shade-900 font-medium text-lg sm:text-2xl sm:mb-4'>
+                    <Typography color='shade-700' className='text-shade-700 font-normal text-xs sm:text-[16px] mb-2 mt-4'>Date</Typography>
+                    <Typography variant='h3' color='shade-900' className='text-shade-900 font-medium text-lg sm:text-2xl sm:mb-4'>
                         {selectedShowtime?.show_time ? formatShowDate(selectedShowtime.show_time) : 'N/A'}
-                    </div>
+                    </Typography>
                     <hr className='w-full h-px text-shade-200' />
 
                     <div className='flex gap-19'>
                         <div>
-                            <div className='text-shade-700 font-normal text-xs sm:text-[16px] mb-2 mt-4'>Screen</div>
-                            <div className='text-shade-900 font-medium text-lg sm:text-2xl sm:mb-4'>
+                            <Typography color='shade-700' className='text-shade-700 font-normal text-xs sm:text-[16px] mb-2 mt-4'>Screen</Typography>
+                            <Typography variant='h3' color='shade-900' className='text-shade-900 font-medium text-lg sm:text-2xl sm:mb-4'>
                                 {selectedShowtime?.screen?.name ?? 'N/A'}
-                            </div>
+                            </Typography>
                         </div>
 
                         <div>
-                            <div className='text-shade-700 font-normal text-xs sm:text-[16px] mb-2 mt-4'>Time</div>
-                            <div className='text-shade-900 font-medium text-lg sm:text-2xl sm:mb-4'>
+                            <Typography color='shade-700' className='text-shade-700 font-normal text-xs sm:text-[16px] mb-2 mt-4'>Time</Typography>
+                            <Typography variant='h3' color='shade-900' className='text-shade-900 font-medium text-lg sm:text-2xl sm:mb-4'>
                                 {selectedShowtime?.show_time ? formatShowtime(selectedShowtime.show_time) : 'N/A'}
-                            </div>
+                            </Typography>
                         </div>
                     </div>
                     <hr className='w-full h-px text-shade-200' />
 
-                    <div className='text-shade-700 font-normal text-xs sm:text-[16px] mb-2 mt-4'>Seats ({selectedSeatIds.length})</div>
-                    <div className='text-shade-900 font-medium text-lg sm:text-2xl mb-4'>
+                    <Typography color='shade-700' className='text-shade-700 font-normal text-xs sm:text-[16px] mb-2 mt-4'>Seats ({selectedSeatIds.length})</Typography>
+                    <Typography variant='h3' color='shade-900' className='max-w-60 text-shade-900 font-medium text-lg sm:text-2xl mb-4'>
                         {selectedSeatLabels.join(', ')}
-                    </div>
+                    </Typography>
                     <hr className='w-full h-px text-shade-200' />
 
                     <button
                         onClick={() => setShowBackModal(true)}
-                        className="flex gap-4 text-white cursor-pointer mt-4 sm:mt-15"
+                        className="flex items-center gap-4 text-white cursor-pointer mt-4 sm:mt-15"
                     >
                         <GoArrowLeft className="text-xl sm:text-[24px] text-shade-600" />
                         <span className="font-bold text-xl sm:text-[24px] text-shade-600">Return</span>
@@ -333,9 +305,9 @@ export default function PaymentPage() {
 
 
                 <div className='sm:w-125 pt-6.5 pr-12 pb-12 pl-8 border rounded-[13px] border-[#c4c4c4] shadow-md'>
-                    <div className='text-shade-900 font-medium text-lg sm:text-2xl leading-8'>Order Summary</div>
+                    <Typography variant='h3' color='shade-900'>Order Summary</Typography>
 
-                    <div className='text-shade-900 font-bold text-[12px] sm:text-[16px] mt-8 mb-4 sm:mb-16'>Transaction Details</div>
+                    <div className='text-shade-900 font-bold text-[12px] sm:text-[16px] mt-8 mb-4 sm:mb-4'>Transaction Details</div>
 
                     <div className='flex justify-between items-center mb-2'>
                         <span className='text-shade-900 text-[16px] font-normal'>
@@ -347,7 +319,7 @@ export default function PaymentPage() {
                         </span>
                     </div>
 
-                    <div className='flex justify-between items-center mb-7'>
+                    <div className='flex justify-between items-center mb-4'>
                         <span className='text-shade-900 text-[16px]'>Service Fee</span>
                         <span className='text-shade-900 text-[16px] font-normal'>
                             ₹{serviceFee.toLocaleString('en-IN')}
@@ -356,6 +328,13 @@ export default function PaymentPage() {
                     </div>
 
                     <hr className='w-full h-px text-shade-200' />
+                    
+                    <div className='flex justify-between items-center my-4'>
+                        <span className='text-shade-900 text-[16px]'>Subtotal</span>
+                        <span className='text-shade-900 text-[16px] font-normal'>
+                            ₹{totalPrice.toLocaleString('en-IN')}
+                        </span>
+                    </div>
 
                     <div className='text-shade-900 font-bold text-[12px] sm:text-[16px] mt-8 '>Promo & Voucher</div>
                     {discountId ? (

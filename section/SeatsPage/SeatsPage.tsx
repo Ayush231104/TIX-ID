@@ -173,8 +173,8 @@ export default function SeatsPage() {
         }
 
         // ── Optimistic — instant UI update ──
-        dispatch(toggleSeat({ id: seat.id, label })); 
-        
+        dispatch(toggleSeat({ id: seat.id, label }));
+
         if (oldestSeatId && oldestSeatLabel) {
             dispatch(toggleSeat({ id: oldestSeatId, label: oldestSeatLabel })); // Remove the oldest seat
         }
@@ -222,9 +222,9 @@ export default function SeatsPage() {
     // Handle back button
     const handleBack = useCallback(async () => {
         if (selectedShowtime?.id && selectedSeatIds.length > 0) {
-            await releaseSeatsAction({showtimeId: selectedShowtime.id, seatIds: selectedSeatIds });
+            await releaseSeatsAction({ showtimeId: selectedShowtime.id, seatIds: selectedSeatIds });
         }
-       router.replace(`/booking/${movieId}`)
+        router.replace(`/booking/${movieId}`)
     }, [selectedShowtime, selectedSeatIds, releaseSeatsAction, router, movieId]);
 
     // Guards
@@ -279,9 +279,9 @@ export default function SeatsPage() {
                 </div>
             </div>
 
-            {selectedSeatIds.length > 0 && (
-                <div className='bg-white border-t border-shade-200 px-6 sm:px-16 lg:px-42 py-20 flex flex-col md:flex-row gap-4 justify-between z-50'>
-                    <div className='w-1/2 flex flex-col sm:flex-row justify-between'>
+            {/* {selectedSeatIds.length > 0 && (
+                <div className='bg-white border-t border-shade-200 px-6 sm:px-16 lg:px-42 py-10 flex flex-col md:flex-row gap-4 justify-between z-50'>
+                    <div className='sm:w-1/2 flex flex-wrap gap-6  sm:gap-16 justify-start'>
                         <div>
                             <div className='text-shade-600 text-[18px]'>Total</div>
                             <div className='font-bold text-2xl sm:text-4xl text-shade-900'>
@@ -289,7 +289,7 @@ export default function SeatsPage() {
                             </div>
                         </div>
 
-                        <div className='w-72'>
+                        <div className='max-w-72 sm:w-72'>
                             <div className='text-shade-600 text-[18px]'>Seats ({selectedSeatIds.length})</div>
                             <div className='font-bold text-4xl leading-11.5 text-shade-900'>
                                 {selectedSeatLabels.join(', ')}
@@ -297,7 +297,7 @@ export default function SeatsPage() {
                         </div>
                     </div>
 
-                    <div className='w-1/2 flex flex-col lg:flex-row gap-3 justify-center pt-4'>
+                    <div className='sm:w-1/2 flex gap-3 sm:justify-center pt-4'>
                         <button
                             onClick={handleBack}
                             className='w-40 sm:w-50 h-12 px-2 py-3 font-medium text-lg sm:text-xl border border-shade-600 rounded-[5px] text-shade-600 hover:bg-royal-blue-hover hover:text-shade-200 active:bg-royal-blue-while-pressed  transition-all cursor-pointer'
@@ -310,6 +310,46 @@ export default function SeatsPage() {
                             className='w-40 sm:w-54 h-12 px-2 py-3 bg-royal-blue text-sunshine-yellow font-medium text-lg sm:text-xl rounded-[5px] hover:bg-royal-blue-hover active:bg-royal-blue-while-pressed transition-all disabled:opacity-50 uppercase tracking-wide cursor-pointer'
                         >
                             {confirming ? 'Please wait...' : 'Confirm'}
+                        </button>
+                    </div>
+                </div>
+            )} */}
+            {selectedSeatIds.length > 0 && (
+                <div className='max-w-[80%] bg-white border-t border-shade-200 mx-auto py-6 md:py-10 flex flex-col md:flex-row justify-between gap-6 md:gap-4 z-50'>
+
+                    <div className='w-full md:w-auto flex flex-row justify-between md:justify-start gap-4 sm:gap-16'>
+
+                        <div className='flex flex-col'>
+                            <div className='text-shade-600 text-[14px] md:text-[18px] mb-1'>Total</div>
+                            <div className='font-bold text-xl sm:text-3xl lg:text-4xl text-shade-900'>
+                                ₹{totalAmount.toLocaleString('en-IN')}
+                            </div>
+                        </div>
+
+                        <div className='flex flex-col max-w-[55%] lg:min-w-72 text-right md:text-left'>
+                            <div className='text-shade-600 text-[14px] md:text-[18px] mb-1'>
+                                Seats ({selectedSeatIds.length})
+                            </div>
+                            <div className='font-bold text-lg sm:text-2xl lg:text-4xl leading-tight text-shade-900'>
+                                {selectedSeatLabels.join(', ')}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* RIGHT SIDE: Buttons */}
+                    <div className='w-full md:w-auto flex flex-row gap-3 pt-2 md:pt-0'>
+                        <button
+                            onClick={handleBack}
+                            className='flex-1 md:flex-none md:w-40 lg:w-50 h-12 flex items-center justify-center font-medium text-base sm:text-xl border border-shade-600 rounded-[5px] text-shade-600 hover:bg-royal-blue-hover hover:text-shade-200 active:bg-royal-blue-while-pressed transition-all cursor-pointer'
+                        >
+                            Back
+                        </button>
+                        <button
+                            onClick={handleConfirm}
+                            disabled={confirming}
+                            className='flex-1 md:flex-none md:w-40 lg:w-54 h-12 flex items-center justify-center bg-royal-blue text-sunshine-yellow font-medium text-base sm:text-xl rounded-[5px] hover:bg-royal-blue-hover active:bg-royal-blue-while-pressed transition-all disabled:opacity-50 uppercase tracking-wide cursor-pointer'
+                        >
+                            {confirming ? 'Wait...' : 'Confirm'}
                         </button>
                     </div>
                 </div>

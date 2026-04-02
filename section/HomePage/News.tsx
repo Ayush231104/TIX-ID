@@ -6,25 +6,28 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Skeleton from '@/components/ui/Skeleton';
 import { useGetNewsQuery } from '@/lib/features/api/newsApi';
+import Typography from '@/components/ui/Typography';
 
 const News = () => {
   const [showForm, setShowForm] = useState(false);
 
-  const { data: news = [], isLoading, isError} = useGetNewsQuery({ limit: 3});
+  const { data: news = [], isLoading, isError } = useGetNewsQuery({ limit: 3 });
 
   return (
-    <div className="w-full mt-35 px-16">
+    <div className="w-full mt-10 md:mt-35 px-8 md:px-16">
       <div className="flex justify-between">
         <div>
-          <div className="text-2xl font-medium py-2 text-shade-900">
+          <Typography variant='h3' color='shade-900' className="py-2">
             TIX ID News
-          </div>
-          <div className='text-[16px] leading-6 text-shade-600 '>The latest news about the world of cinema for you!</div>
+          </Typography>
+          <Typography color='shade-600'>The latest news about the world of cinema for you!</Typography>
         </div>
 
         <div className="flex items-center gap-4">
-          <Link href={"/news"} className="text-sky-blue text-2xl font-medium leading-8 hover:underline">
-            View All
+          <Link href={"/news"} className="shrink-0">
+            <Typography variant="h3" color="sky-blue" className="text-center hover:underline">
+              View All
+            </Typography>
           </Link>
 
           <button
@@ -58,22 +61,24 @@ const News = () => {
           <p className="text-gray-500 text-lg">No news found</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-4 sm:mt-12">
           {news.map((item) => (
             <div key={item.id} className="w-full">
-              <div className='w-full h-60 relative'>
+              <div className='max-w-105 h-60 relative'>
                 <Image src={item.img} alt={item.title} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" fill className='object-cover rounded-xl' priority ></Image>
+              </div>
+              <button className='border px-3 py-2 text-xs font-normal mt-4 sm:mt-10 '>{item.category}</button>
+              <Typography variant="h3" color="shade-900" className="my-2 sm:my-4.5 max-w-105">
+                {item.title}
+              </Typography>
+              <Typography color='shade-600'>{new Date(item.release_date ?? new Date()).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+              })} | TIX ID</Typography>
             </div>
-            <button className='border px-3 py-2 text-xs font-normal mt-10 '>{item.category}</button>
-            <h2 className="text-2xl font-medium leading-8 my-4.5">{item.title}</h2>
-            <p className="text-[16px] font-normal leading-6 text-shade-600">{new Date(item.release_date ?? new Date()).toLocaleDateString('en-GB', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric'
-            })} | TIX ID</p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
       )}
     </div>
   );

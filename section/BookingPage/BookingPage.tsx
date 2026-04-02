@@ -8,7 +8,7 @@ import { useAppDispatch } from '@/lib/hooks'
 import { setSelectedMovie, setSelectedShowtime as setShowtimeRedux, setSelectedDate as setDateRedux } from '@/lib/features/slice/bookingSlice'
 import { useGetMovieByIdQuery } from '@/lib/features/api/bookingApi'
 
-export default function BookingPage() {
+export default function   BookingPage() {
   const params = useParams()
   const movieId = params.bookingId as string
   const dispatch = useAppDispatch();

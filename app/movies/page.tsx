@@ -1,5 +1,6 @@
 'use client'
 import Skeleton from "@/components/ui/Skeleton"
+import Typography from "@/components/ui/Typography"
 import { useGetMoviesListQuery } from "@/lib/features/api/moviesApi"
 import Image from "next/image"
 import Link from "next/link"
@@ -11,10 +12,12 @@ export default function Movies() {
 		<div className="w-full px-8 md:px-16">
 			<div className="flex justify-between">
 				<div>
-					<div className="text-2xl sm:text-4xl font-bold py-2 text-shade-900">
+					<Typography variant="h2" color="shade-900" className="py-5">
 						Movies
-					</div>
-					<div className='text-[16px] leading-6 text-shade-600 '>Enjoy movies with friends on the big screen</div>
+					</Typography>
+					<Typography color="shade-700">
+						Enjoy movies with friends on the big screen
+					</Typography>
 				</div>
 			</div>
 			{isLoading ? (
@@ -38,11 +41,11 @@ export default function Movies() {
 					</div>
 				) :
 					(
-						<div className="w-full mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 justify-items-center">							{movies.map((movie) => {
+						<div className="w-full mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-16 justify-items-center">							{movies.map((movie) => {
 							return (
 								<Link key={movie.id} href={`/booking/${movie.id}`}>
 									<div className='flex flex-col gap-2 md:gap-4 max-w-90'>
-										<div className='w-full'>
+										<div className='w-full mb-4'>
 											<div className='max-w-90 max-h-127 relative rounded-2xl'>
 												<Image
 													className='aspect-3/4 rounded-2xl object-fit'

@@ -1,5 +1,6 @@
 'use client'
 import Skeleton from "@/components/ui/Skeleton"
+import Typography from "@/components/ui/Typography";
 import { useGetMoviesListQuery } from "@/lib/features/api/moviesApi";
 import Image from "next/image"
 
@@ -13,8 +14,10 @@ export default function UpcomingPage() {
 		<div className="w-full px-16">
 			<div className="flex justify-between">
 				<div>
-					<div className="text-2xl sm:text-4xl font-bold py-2 text-shade-900">Upcoming Movies</div>
-					<div className='text-[16px] leading-6 text-shade-600 '>Wait for its presence at your favorite cinema!</div>
+					<Typography variant="h2" color="shade-900" className="py-5">Upcoming Movies</Typography>
+					<Typography color="shade-700">
+						Wait for its presence at your favorite cinema!
+					</Typography>
 				</div>
 			</div>
 			{isLoading ? (
@@ -38,12 +41,12 @@ export default function UpcomingPage() {
 					</div>
 				) :
 					(
-						<div className="w-full mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 justify-items-center">
+						<div className="w-full mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-16 justify-items-center">
 							{movies.map((movie) => {
 								return (
 									<div key={movie.id}>
 										<div className='flex flex-col gap-2 md:gap-4 max-w-90'>
-											<div className='w-full'>
+											<div className='w-full mb-4'>
 												<div className='max-w-90 max-h-127 relative rounded-2xl'>
 													<Image
 														className='aspect-3/4  object-fit rounded-2xl '
@@ -55,9 +58,9 @@ export default function UpcomingPage() {
 													/>
 												</div>
 											</div>
-											<div className='text-[16px] md:text-2xl sm:font-medium'>
+											<Typography variant="h3" color="shade-900">
 												{movie.name}
-											</div>
+											</Typography>
 											<div className='flex gap-3'>
 												<button className='bg-linear-to-r from-xxi-gold to-xxi-gold-dark text-white rounded-[5px] py-1 px-3 text-[8px] md:text-xs'>XXI</button>
 												<button className='bg-cgv-red text-white rounded-[5px] py-1 px-3 text-[8px] md:text-xs'>CGV</button>

@@ -6,13 +6,14 @@ import { FaFacebook, FaInstagram, FaTwitter } from 'react-icons/fa';
 import { RiThumbUpLine } from 'react-icons/ri';
 import { useGetArticleQuery, useLikeArticleMutation } from '@/lib/features/api/newsApi';
 import Skeleton from '@/components/ui/Skeleton';
+import Typography from '@/components/ui/Typography';
 
 
 export default function ArticlePage() {
   const params = useParams();
   const id = params.article as string;
 
-  const { data, isLoading, isError } = useGetArticleQuery(id, {skip: !id});
+  const { data, isLoading, isError } = useGetArticleQuery(id, { skip: !id });
 
   const [likeArticle, { isLoading: isLiking }] = useLikeArticleMutation();
 
@@ -24,7 +25,7 @@ export default function ArticlePage() {
   if (isLoading) return (
     <div className='w-full my-10 px-8 md:px-16'>
       <div className='w-full max-w-4xl mx-auto flex flex-col justify-center items-center'>
-        
+
         {/* Title & Date Skeleton */}
         <div className='sm:my-10  w-full flex flex-col items-center gap-4'>
           <Skeleton w="w-3/4 md:w-2/3" h="h-20 md:h-16" className="my-2" />
@@ -58,7 +59,7 @@ export default function ArticlePage() {
             <Skeleton w="w-8" h="h-8" rounded="rounded-full" />
           </div>
         </div>
-        
+
         <div className="w-full flex justify-center">
           <Skeleton w="w-24" h="h-12" rounded="rounded-[59px]" />
         </div>
@@ -89,13 +90,13 @@ export default function ArticlePage() {
 
   return (
     <div>
-      <div className='w-full my-10 px-8 md:px-16'>
+      <div className='w-full sm:my-10 px-8 md:px-16'>
         <div className='w-full max-w-4xl mx-auto flex flex-col justify-center items-center'>
           <div className='sm:my-10'>
-            <div className='text-2xl md:text-[56px] font-bold my-4.5 text-shade-900'>
+            <Typography variant='h1'>
               {article.title}
-            </div>
-            <p className="text-xs sm:text-xl md:text-2xl font-normal leading-3.5 text-shade-600">
+            </Typography>
+            <p className="text-xs sm:text-xl md:text-2xl font-normal leading-3.5 text-shade-600 mt-2 sm:mt-8">
               {new Date(article.release_date).toLocaleDateString('en-GB', {
                 day: '2-digit',
                 month: 'short',
@@ -105,27 +106,25 @@ export default function ArticlePage() {
           </div>
 
           <div className='w-full'>
-            <div className='w-full lg:w-214.5 h-80 sm:h-111.75 relative my-10'>
+            <div className='relative w-full lg:w-214.5 h-80 sm:h-111.75 my-6 sm:my-10'>
               <Image
                 src={article.img}
                 alt={article.title}
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                // fill
-                width={800}
-                height={750}
-                className='object-cover w-full rounded-xl'
+                fill
                 priority
+                className='object-cover rounded-xl'
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1200px"
               />
             </div>
           </div>
 
-          <div className='w-full mt-16.75'>
-            <p className='lg:w-187 whitespace-pre-line font-normal text-[18px] leading-7 text-shade-900'>
+          <div className='w-full sm:mt-16.75'>
+            <Typography variant='body-large' color='shade-900' className='lg:w-187 whitespace-pre-line'>
               {article.content}
-            </p>
+            </Typography>
           </div>
 
-          <div className='w-full mt-22'>
+          <div className='w-full mt-8 sm:mt-22'>
             <div className='text-2xl leading-8 font-medium py-3.5 text-shade-900'>
               Share This Article
             </div>
@@ -139,9 +138,8 @@ export default function ArticlePage() {
           <button
             onClick={handleLikeChange}
             disabled={isLiking}
-            className={`px-4 py-2 border rounded-[59px] border-shade-800 transition-colors ${
-              isLiking ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-100'
-            }`}
+            className={`px-4 py-2 border rounded-[59px] border-shade-800 transition-colors ${isLiking ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-100'
+              }`}
           >
             <div className='flex gap-1 items-center'>
               <RiThumbUpLine size={24} />
@@ -164,12 +162,12 @@ export default function ArticlePage() {
                     priority
                   />
                 </div>
-                <button className='border px-3 py-2 text-xs font-normal mt-10'>
-                  {item.category}
+                <button className='border px-3 py-2 mt-4 sm:mt-10'>
+                  <Typography variant='body-small' color='shade-900'>{item.category}</Typography>
                 </button>
-                <h2 className="text-2xl font-medium leading-8 my-4.5 text-shade-900">
+                <Typography variant='h3' color='shade-900' className="sm:my-4.5">
                   {item.title}
-                </h2>
+                </Typography>
                 <p className="text-[16px] font-normal leading-6 text-shade-600">
                   {new Date(item.release_date).toLocaleDateString('en-GB', {
                     day: '2-digit',

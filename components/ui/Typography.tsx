@@ -76,7 +76,7 @@ export default function Typography({
   };
 
   return (
-    <Component className={`${variantStyles[variant]} ${colorStyles[color]} ${className}`}>
+    <Component className={` ${className} ${variantStyles[variant]} ${colorStyles[color]}`}>
       {children}
     </Component>
   );

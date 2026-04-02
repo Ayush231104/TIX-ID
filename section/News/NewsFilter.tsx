@@ -10,6 +10,7 @@ import { FaCaretDown, FaCaretUp } from "react-icons/fa";
 import { CiSearch } from "react-icons/ci";
 import { useGetNewsQuery } from "@/lib/features/api/newsApi";
 import Skeleton from "@/components/ui/Skeleton";
+import Typography from "@/components/ui/Typography";
 
 export default function NewsFilter() {
   const dispatch = useAppDispatch();
@@ -35,12 +36,12 @@ export default function NewsFilter() {
   return (
     <div>
       <div>
-        <div className="font-bold text-4xl text-shade-900 py-4.5">
+        <Typography variant="h2" color="shade-900" className="py-4.5">
           TIX ID News
-        </div>
-        <div className="text-[16px] font-normal text-shade-600 leading-6 mb-8">
+        </Typography>
+        <Typography color="shade-700" className="mb-8">
           The latest news about the world of cinema for you!
-        </div>
+        </Typography>
       </div>
 
       <div className="flex items-center gap-6 w-full mb-6">
@@ -141,11 +142,11 @@ export default function NewsFilter() {
         </>
       ) : isError ? (
         <div className="flex justify-center items-center h-96">
-          <p className="text-red-500 text-lg">Failed to load news.</p>
+          <Typography className="text-red-500 text-lg">Failed to load news.</Typography>
         </div>
       ) : news.length === 0 ? (
         <div className="flex justify-center items-center h-96">
-          <p className="text-gray-500 text-lg">No news found matching your criteria.</p>
+          <Typography variant="body-large" color="shade-500">No news found matching your criteria.</Typography>
         </div>
       ) : (
         <>
@@ -181,15 +182,15 @@ export default function NewsFilter() {
                     </div>
 
                     <div className="w-full lg:w-1/2 flex flex-col items-start px-2">
-                      <div className="border border-shade-800 px-5 py-3.5 text-xl leading-5 font-normal mb-2 sm:mb-6">
+                      <Typography variant="body-xl" color="shade-900" className="border px-5 py-3.5 leading-5 mb-2 sm:mb-6">
                         {item.category}
-                      </div>
-                      <h2 className="lg:w-lg text-3xl sm:text-[40px] font-medium leading-7 sm:leading-12.5 text-shade-900 mb-4">
+                      </Typography>
+                      <Typography variant="h2" color="shade-900" className="lg:w-lg lg:text-[40px] font-medium leading-7 sm:leading-12.5 mb-4">
                         {item.title}
-                      </h2>
-                      <p className="lg:w-lg text-[16px] font-normal leading-5 sm:leading-6 text-shade-600 mb-5">
+                      </Typography>
+                      <Typography color="shade-600" className="lg:w-lg mb-5">
                         {item.subtitle}
-                      </p>
+                      </Typography>
                       <p className="text-xl sm:text-[24px] font-normal leading-6 text-shade-700 sm:mt-5">
                         {new Date(item.release_date).toLocaleDateString("id-ID", {
                           day: "2-digit",

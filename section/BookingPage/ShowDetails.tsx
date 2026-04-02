@@ -45,9 +45,9 @@ export default function ShowDetails({ movie, selectedShowtime }: Props) {
   const params = useParams();
   const movieId = params.bookingId as string
   return (
-    <div className=' mt-27.75 pl-8 lg:pl-32'>
+    <div className=' mt-27.75 px-8 lg:pl-32'>
       <div>
-        <div className='w-[90%] sm:max-w-110 h-100 sm:h-140 relative mb-12'>
+        <div className='max-w-110 h-140 relative mb-12'>
           <Image
             src={movie.movie_img ?? '/placeholder.jpg'}
             alt="Show Details"
