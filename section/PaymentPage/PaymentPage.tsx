@@ -111,6 +111,32 @@ export default function PaymentPage() {
         };
     }, [selectedMovie, selectedShowtime, selectedSeatIds.length, movieId, router, dispatch, ]);
 
+    // 🚀 INTERCEPT BROWSER BACK BUTTON
+    useEffect(() => {
+        window.history.pushState(null, '', window.location.href);
+
+        const handlePopState = () => {
+            setShowBackModal(true);
+            window.history.pushState(null, '', window.location.href);
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, []);
+
+    // 🚀 INTERCEPT TAB CLOSE OR REFRESH
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            e.preventDefault();
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, []);
+
     // BUTTON HANDLERS
     const handleBackConfirm = async () => {
         setBuying(true);

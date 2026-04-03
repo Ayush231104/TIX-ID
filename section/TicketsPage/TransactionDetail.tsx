@@ -3,6 +3,8 @@
 import { GoArrowLeft, GoDownload } from 'react-icons/go';
 import type { EnrichedBooking } from './TicketsPage'; 
 import { useState } from 'react';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import TicketPDF from '@/components/pdf/TicketPDF';
 
 interface TransactionDetailProps {
   ticket: EnrichedBooking;
@@ -27,7 +29,8 @@ const getSeatLabel = (row: number, col: number): string => {
 
 export default function TransactionDetail({ ticket, onBack }: TransactionDetailProps) {
   const [passwordKey] = useState(() => Math.floor(100000 + Math.random() * 900000));
-  
+  const isClient = typeof window !== 'undefined';
+
   const showtime = ticket.showtimes;
   const movie = showtime.movies;
   const theater = showtime.theater;
@@ -99,8 +102,27 @@ export default function TransactionDetail({ ticket, onBack }: TransactionDetailP
               </div>
             </div>
 
-            <div className="flex justify-center max-w-15 shrink-0 border border-royal-blue-default p-2 sm:p-3 rounded-lg cursor-pointer hover:bg-black/5 transition mt-1 sm:mt-0">
-              <GoDownload className="text-2xl sm:text-3xl" />
+            <div className="flex justify-center max-w-15 shrink-0 border border-royal-blue-default rounded-lg transition mt-1 sm:mt-0 cursor-pointer hover:bg-black/5">
+              {isClient ? (
+                <PDFDownloadLink
+                  document={<TicketPDF ticket={ticket} passwordKey={passwordKey} seats={seats} />}
+                  fileName={`TIX-ID-Ticket-${ticket.id.split('-')[0].toUpperCase()}.pdf`}
+                  className="p-2 sm:p-3 flex items-center justify-center w-full h-full"
+                >
+                  {({ loading }) => (
+                    loading ? (
+                       <div className="w-6 h-6 border-2 border-royal-blue-default border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                       <GoDownload className="text-2xl sm:text-3xl text-royal-blue-default" />
+                    )
+                  )}
+                </PDFDownloadLink>
+              ) : (
+                // Fallback while SSR is resolving
+                <div className="p-2 sm:p-3">
+                  <GoDownload className="text-2xl sm:text-3xl text-royal-blue-default opacity-50" />
+                </div>
+              )}
             </div>
           </div>
 

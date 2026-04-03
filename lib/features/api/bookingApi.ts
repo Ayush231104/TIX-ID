@@ -24,10 +24,8 @@ export const bookingApi = createApi({
         getMovieById: builder.query<Movie, string>({
             queryFn: async (id) => {
                 try {
-                    // Assuming you imported getMovie from '@/actions/movieActions'
                     const result = await getMovie(id);
                     if (!result.success || !result.data) return { error: { message: result.error || 'Not found' } };
-
                     return { data: result.data as Movie };
                 } catch (error) {
                     if (error instanceof Error) return { error: { message: error.message } };
@@ -60,8 +58,7 @@ export const bookingApi = createApi({
                     if (error instanceof Error) return { error: { message: error.message } };
                     return { error: { message: 'Unexpected error' } };
                 }
-            }
-            // Note: We don't strictly need invalidatesTags here because Supabase Realtime will catch it!
+            },
         }),
 
         releaseSeatsMutation: builder.mutation<null, { showtimeId: string; seatIds: string[] }>({
@@ -79,5 +76,10 @@ export const bookingApi = createApi({
     }),
 });
 
-export const { useGetShowtimesQuery, useGetMovieByIdQuery, useGetSeatsWithStatusQuery, useLockSeatsMutationMutation,
-    useReleaseSeatsMutationMutation } = bookingApi;
+export const {
+    useGetShowtimesQuery,
+    useGetMovieByIdQuery,
+    useGetSeatsWithStatusQuery,
+    useLockSeatsMutationMutation,
+    useReleaseSeatsMutationMutation
+} = bookingApi;

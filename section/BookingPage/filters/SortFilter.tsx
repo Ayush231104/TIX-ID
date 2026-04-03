@@ -1,14 +1,14 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FaCaretDown, FaCaretUp } from 'react-icons/fa'
 import { FiCheck } from 'react-icons/fi'
 import { SortOption } from '../Bookshow'
 
 const SORT_OPTIONS: { label: string; value: SortOption }[] = [
-  { label: 'Nearest',        value: 'nearest'  },
+  { label: 'Nearest', value: 'nearest' },
   { label: 'Cheapest Price', value: 'cheapest' },
-  { label: 'Alphabet',       value: 'alphabet' },
+  { label: 'Alphabet', value: 'alphabet' },
 ]
 
 export default function SortFilter({
@@ -20,7 +20,7 @@ export default function SortFilter({
   onSelect: (sort: SortOption | null) => void
   onLocationFetched: (loc: { lat: number; lng: number }) => void
 }) {
-  const [isOpen, setIsOpen]       = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
   const [locLoading, setLocLoading] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -52,7 +52,15 @@ export default function SortFilter({
     setIsOpen(false)
   }
 
-  const selectedLabel = SORT_OPTIONS.find((o) => o.value === sortBy)?.label
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   return (
     <div ref={ref} className='relative'>
@@ -65,10 +73,10 @@ export default function SortFilter({
       </button>
 
       {isOpen && (
-        <div className='absolute -top-3 -left-4 w-48 bg-white rounded-lg shadow-md/30 shadow-gray-900 border border-gray-100 z-50 py-2 animate-in fade-in zoom-in-95'>
+        <div className='absolute -top-2 -left-2 w-48 bg-white rounded-lg shadow-md/30 shadow-gray-900 border border-gray-100 z-50 py-2 animate-in fade-in zoom-in-95'>
           <button
             onClick={() => setIsOpen(false)}
-            className='flex items-center gap-3 w-full text-left px-6 py-2 text-[14px] font-normal text-gray-900 hover:bg-gray-50 transition'
+            className='flex items-center gap-2 w-full text-left px-6 py-2 text-[14px] font-normal text-gray-900 hover:bg-gray-50 transition'
           >
             Sort
             <FaCaretUp className='text-sm' />

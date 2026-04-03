@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { GoLocation } from 'react-icons/go';
 import type { EnrichedBooking, TicketCategory } from './TicketsPage'; 
+import Typography from '@/components/ui/Typography';
 
 interface TransactionHistoryProps {
   bookings: EnrichedBooking[];
@@ -51,13 +52,13 @@ export default function TransactionHistory({ bookings, category, onSelectTicket 
               </div>
 
               <div className="flex-1 flex flex-col justify-center">
-                <h2 className="text-xl font-bold text-shade-900 mb-2">{showtime.movies.name}</h2>
-                <p className="text-shade-600 text-sm mb-4">
+                <Typography variant='h3' color='shade-900' className="sm:mb-2">{showtime.movies.name}</Typography>
+                <Typography color='shade-700' className="mb-3 sm:mb-6">
                   {formatFullDate(showtime.show_time)}, {formatTime(showtime.show_time)}
-                </p>
+                </Typography>
                 <div className="flex items-center gap-2 text-shade-500 text-sm">
-                  <GoLocation className="text-lg" />
-                  <span>{showtime.theater.name}</span>
+                  <GoLocation className="text-lg text-shade-600" />
+                  <Typography color='shade-600'>{showtime.theater.name}</Typography>
                   <span className="font-semibold text-shade-900 ml-1">({showtime.screen.type})</span>
                 </div>
               </div>
