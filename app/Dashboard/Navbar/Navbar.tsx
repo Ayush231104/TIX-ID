@@ -11,36 +11,19 @@ import { useRouter } from "next/navigation";
 import { LuLogOut } from "react-icons/lu";
 import Typography from "@/components/ui/Typography";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import { useAppSelector } from "@/lib/hooks";
 
 const supabase = createClient();
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data, error }) => {
-      if (error) {
-        console.log(error);
-      }
-      setUser(data.user ?? null);
-    });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
-      });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
+  const user = useAppSelector((state) => state.auth.user)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

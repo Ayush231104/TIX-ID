@@ -36,7 +36,6 @@ interface TicketPDFProps {
 export default function TicketPDF({ ticket, passwordKey, seats }: TicketPDFProps) {
   const showtime = ticket.showtimes;
   
-  // 🚀 Date/Time Formatting
   const date = new Date(showtime.show_time).toLocaleDateString('en-GB', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
@@ -44,7 +43,6 @@ export default function TicketPDF({ ticket, passwordKey, seats }: TicketPDFProps
     hour: '2-digit', minute: '2-digit', hour12: false,
   });
 
-  // 🚀 Purchase Details Math
   const seatCount = ticket.booking_seats.length;
   const seatPrice = showtime.price || 0;
   const serviceFee = 30;

@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { IoTicketOutline, IoReceiptOutline } from 'react-icons/io5';
+import { IoReceiptOutline } from 'react-icons/io5';
 import type { Booking, Showtime, Movie, Theater, Screen, BookingSeat, Seat } from '@/types';
 import TransactionDetail from './TransactionDetail';
 import ActiveTickets from './ActiveTickets';
@@ -133,7 +133,7 @@ export default function TicketsPage({ initialBookings }: TicketsPageProps) {
 
             {activeTab === 'active' ? (
               <ActiveTickets 
-                bookings={activeBookings} 
+                bookings={activeBookings}  
                 category={category} 
                 onSelectTicket={setSelectedTicket} 
               />

@@ -21,7 +21,7 @@ export default function UpcomingPage() {
 				</div>
 			</div>
 			{isLoading ? (
-				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-12 overflow-hidden w-full">
+				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-12 overflow-hidden w-full">
 					{[...Array(5)].map((_, i) => (
 						<div key={i} className="flex flex-col items-center gap-4 w-full">
 							<Skeleton w="w-full" h="h-125" rounded="rounded-2xl" />
@@ -41,7 +41,7 @@ export default function UpcomingPage() {
 					</div>
 				) :
 					(
-						<div className="w-full mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-16 justify-items-center">
+						<div className="w-full mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 sm:gap-16 justify-items-center">
 							{movies.map((movie) => {
 								return (
 									<div key={movie.id}>

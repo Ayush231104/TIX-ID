@@ -29,13 +29,12 @@ function LegendItem({ color, label }: { color: string; label: string }) {
   )
 }
 
-// 🚀 THE DIFF ENGINE: Calculates exactly what needs to be added or removed from the DB
 function computeDiff(synced: string[], desired: string[]) {
   const syncedSet = new Set(synced)
   const desiredSet = new Set(desired)
   return {
-      toAdd: desired.filter(s => !syncedSet.has(s)),
-      toDelete: synced.filter(s => !desiredSet.has(s)),
+    toAdd: desired.filter(s => !syncedSet.has(s)),
+    toDelete: synced.filter(s => !desiredSet.has(s)),
   }
 }
 
@@ -52,8 +51,7 @@ export default function SeatsPage() {
   const totalAmount = useAppSelector((s) => s.booking.totalAmount)
 
   const [confirming, setConfirming] = useState(false)
-  const [isSyncing, setIsSyncing] = useState(false) // 🚀 Visual indicator for background saves
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [isSyncing, setIsSyncing] = useState(false) 
   const [showBackModal, setShowBackModal] = useState(false)
 
   const queryArgs = useMemo(() => ({
@@ -61,15 +59,15 @@ export default function SeatsPage() {
     showtimeId: selectedShowtime?.id ?? ''
   }), [selectedShowtime?.screen_id, selectedShowtime?.id])
 
-  // 🚀 THE SYNC REFS
   const isProceedingRef = useRef(false)
   const syncedSeatsRef = useRef<string[]>([])
   const pendingDesiredRef = useRef<string[]>([])
   const debounceTimer = useRef<NodeJS.Timeout | null>(null)
+  const isSyncingRef = useRef(false)
+  const needsAnotherFlushRef = useRef(false)
 
-  // Keep pendingDesired fresh on every UI change
   useEffect(() => {
-      pendingDesiredRef.current = selectedSeatIds
+    pendingDesiredRef.current = selectedSeatIds
   }, [selectedSeatIds])
 
   const {
@@ -83,11 +81,7 @@ export default function SeatsPage() {
   const [lockSeatsAction] = useLockSeatsMutationMutation();
   const [releaseSeatsAction] = useReleaseSeatsMutationMutation();
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setCurrentUserId(user.id)
-    })
-  }, [])
+  const currentUserId = useAppSelector((state) => state.auth.user?.id ?? null);
 
   useEffect(() => {
     window.history.pushState(null, '', window.location.href);
@@ -118,7 +112,7 @@ export default function SeatsPage() {
     backup.seatIds.forEach((id: string, index: number) => {
       dispatch(toggleSeat({ id, label: backup.seatLabels[index] }))
     })
-    
+
     syncedSeatsRef.current = backup.seatIds;
     pendingDesiredRef.current = backup.seatIds;
   }, [])
@@ -135,67 +129,71 @@ export default function SeatsPage() {
 
 
   const flushNow = useCallback(async (): Promise<boolean> => {
-      if (!selectedShowtime?.id || !currentUserId) return true;
+    if (!selectedShowtime?.id || !currentUserId) return true;
 
-      const desired = pendingDesiredRef.current;
-      const synced = syncedSeatsRef.current;
-      const { toAdd, toDelete } = computeDiff(synced, desired);
+    if (isSyncingRef.current) {
+        needsAnotherFlushRef.current = true;
+        return true;
+    }
 
-      if (toAdd.length === 0 && toDelete.length === 0) return true;
+    const desired = pendingDesiredRef.current;
+    const synced = syncedSeatsRef.current;
+    const { toAdd, toDelete } = computeDiff(synced, desired);
 
-      setIsSyncing(true);
+    if (toAdd.length === 0 && toDelete.length === 0) return true;
 
-      try {
-          const promises = [];
-          if (toAdd.length > 0) {
-              promises.push(lockSeatsAction({ showtimeId: selectedShowtime.id, seatIds: toAdd, userId: currentUserId }));
-          } else {
-              promises.push(Promise.resolve({ data: null, error: undefined })); 
-          }
+    isSyncingRef.current = true;
+    setIsSyncing(true);
 
-          if (toDelete.length > 0) {
-              promises.push(releaseSeatsAction({ showtimeId: selectedShowtime.id, seatIds: toDelete }));
-          } else {
-              promises.push(Promise.resolve({ data: null, error: undefined })); 
-          }
+    try {
+      if (toDelete.length > 0) {
+          await releaseSeatsAction({ showtimeId: selectedShowtime.id, seatIds: toDelete });
+          syncedSeatsRef.current = syncedSeatsRef.current.filter(id => !toDelete.includes(id));
+      }
 
-          const [lockResult] = await Promise.all(promises);
-
-          if (lockResult?.error) {
-              toAdd.forEach(id => dispatch(toggleSeat({ id, label: '' }))); 
+      if (toAdd.length > 0) {
+          const lockResult = await lockSeatsAction({ showtimeId: selectedShowtime.id, seatIds: toAdd, userId: currentUserId });
+          
+          if (lockResult.error) {
+              toAdd.forEach(id => dispatch(toggleSeat({ id, label: '' })));
               toast.error('Some seats were taken by others. Please reselect.');
               await fetchSeats();
               return false;
           }
-
-          syncedSeatsRef.current = desired;
-          return true;
-      } catch (err) {
-					console.error("Sync error:", err);
-          toAdd.forEach(id => dispatch(toggleSeat({ id, label: '' })));
-          toast.error("Network error. Your selection has been reset.");
-          return false;
-      } finally {
-          setIsSyncing(false);
+          
+          syncedSeatsRef.current = [...syncedSeatsRef.current, ...toAdd];
       }
+
+      return true;
+    } catch (err) {
+      toAdd.forEach(id => dispatch(toggleSeat({ id, label: '' })));
+      toast.error("Network error. Your selection has been reset.");
+      return false;
+    } finally {
+      isSyncingRef.current = false;
+      setIsSyncing(false);
+
+      if (needsAnotherFlushRef.current) {
+          needsAnotherFlushRef.current = false;
+          if (debounceTimer.current) clearTimeout(debounceTimer.current);
+          debounceTimer.current = setTimeout(flushNow, 800);
+      }
+    }
   }, [selectedShowtime?.id, currentUserId, lockSeatsAction, releaseSeatsAction, dispatch, fetchSeats]);
 
-  // 🚀 THE DEBOUNCE WRAPPER
   const scheduleFlush = useCallback(() => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-      debounceTimer.current = setTimeout(flushNow, 800);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(flushNow, 800);
   }, [flushNow]);
 
-  // ── REALTIME HANDLER ──
-  // 🚀 Greatly simplified! No more complex patching. Just a debounced refetch when ANY change happens in DB.
   useEffect(() => {
     if (!selectedShowtime?.id) return
 
     let fallbackTimer: NodeJS.Timeout | null = null
 
     const handleChange = () => {
-        if (fallbackTimer) clearTimeout(fallbackTimer)
-        fallbackTimer = setTimeout(() => fetchSeats(), 300)
+      if (fallbackTimer) clearTimeout(fallbackTimer)
+      fallbackTimer = setTimeout(() => fetchSeats(), 300)
     }
 
     const channel = supabase
@@ -219,7 +217,6 @@ export default function SeatsPage() {
       if (fallbackTimer) clearTimeout(fallbackTimer)
     }
   }, [selectedShowtime?.id, fetchSeats])
-
 
   const showtimeRef = useRef(selectedShowtime)
   const seatIdsRef = useRef(selectedSeatIds)
@@ -246,7 +243,6 @@ export default function SeatsPage() {
   }, [dispatch, selectedShowtime, selectedSeatIds, releaseSeatsAction])
 
 
-  // 🚀 PURE UI SEAT CLICK - Zero DB calls, triggers the debouncer
   const handleSeatClick = useCallback((seat: SeatWithStatus) => {
     if (seat.is_booked) return
     if (seat.is_locked && seat.locked_by_user_id !== currentUserId) return
@@ -270,13 +266,11 @@ export default function SeatsPage() {
       oldestSeatLabel = selectedSeatLabels[0];
     }
 
-    // ── Optimistic — instant UI update ──
     dispatch(toggleSeat({ id: seat.id, label }));
     if (oldestSeatId && oldestSeatLabel) {
       dispatch(toggleSeat({ id: oldestSeatId, label: oldestSeatLabel }));
     }
 
-    // Tell the system to start the 800ms timer
     scheduleFlush();
 
   }, [dispatch, selectedShowtime, selectedSeatIds, selectedSeatLabels, currentUserId, router, scheduleFlush])
@@ -285,20 +279,24 @@ export default function SeatsPage() {
   const handleConfirm = async () => {
     if (selectedSeatIds.length === 0) return
     if (!currentUserId) { router.push('/login'); return }
+    
     setConfirming(true)
 
-    // 🚀 Force immediate sync if the user hit confirm before the 800ms timer ended
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    while (isSyncingRef.current) {
+        await new Promise(resolve => setTimeout(resolve, 100)); 
+    }
+
     const success = await flushNow();
-    
+
     if (!success) {
-        setConfirming(false);
-        return; // flushNow already showed the error toast, so we just stop
+      setConfirming(false);
+      return; 
     }
 
     isProceedingRef.current = true
     router.push(`/booking/${movieId}/seats/payment`)
-    setConfirming(false)
   }
 
   const handleBackClick = () => {
@@ -313,7 +311,7 @@ export default function SeatsPage() {
       });
     }
     sessionStorage.removeItem('tix_seats_backup');
-    syncedSeatsRef.current = []; // Clear the DB tracker
+    syncedSeatsRef.current = [];
     setShowBackModal(false);
     isProceedingRef.current = true;
     router.replace(`/booking/${movieId}`);
@@ -342,7 +340,6 @@ export default function SeatsPage() {
               <LegendItem color='bg-white border border-shade-300' label='Available' />
               <LegendItem color='bg-sky-blue' label='Selected' />
               <LegendItem color='bg-white border-2 border-yellow-400' label='On hold' />
-              {/* Optional: Add a subtle loading indicator while DB saves in background */}
               {isSyncing && <span className="text-xs text-shade-400 animate-pulse hidden sm:block">Saving...</span>}
             </div>
           </div>
@@ -375,7 +372,6 @@ export default function SeatsPage() {
         </div>
       </div>
 
-      {/* Screen */}
       <div className='w-full flex justify-center mt-6  sm:mt-12 mb-2 sm:mb-6'>
         <Image src="/images/booking/cinema-screen.avif" alt="Screen decoration" width={1200} height={200} className='w-[70%] h-auto' />
       </div>
@@ -410,7 +406,7 @@ export default function SeatsPage() {
             </button>
             <button
               onClick={handleConfirm}
-              disabled={confirming || isSyncing} // Disable confirm while flushing!
+              disabled={confirming} 
               className='flex-1 md:flex-none md:w-40 lg:w-54 h-12 flex items-center justify-center bg-royal-blue text-sunshine-yellow font-medium text-base sm:text-xl rounded-[5px] hover:bg-royal-blue-hover active:bg-royal-blue-while-pressed transition-all disabled:opacity-50 uppercase tracking-wide cursor-pointer'
             >
               {confirming ? 'Wait...' : 'Confirm'}

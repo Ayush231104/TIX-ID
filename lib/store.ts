@@ -2,6 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import newsReducer from './features/slice/newsSlice';
 import moviesReducer from './features/slice/moviesSlice';
 import bookingReducer from './features/slice/bookingSlice';
+import authReducer from './features/slice/authSlice';
 import { newsApi } from './features/api/newsApi';
 import { moviesApi } from './features/api/moviesApi';
 import { bookingApi } from './features/api/bookingApi';
@@ -12,6 +13,7 @@ export const makeStore = () => {
       news: newsReducer,
       movies: moviesReducer,
       booking: bookingReducer,
+      auth: authReducer,
 
       [newsApi.reducerPath]: newsApi.reducer,
       [moviesApi.reducerPath]: moviesApi.reducer,

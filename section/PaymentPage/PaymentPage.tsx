@@ -400,7 +400,7 @@ export default function PaymentPage() {
                                     disabled={discountLoading || !discountInput.trim()}
                                     className='px-4 py-2 bg-royal-blue text-white text-sm font-medium rounded-lg hover:bg-royal-blue-hover disabled:opacity-50 cursor-pointer transition-all'
                                 >
-                                    {discountLoading ? '...' : 'Apply'}
+                                    {discountLoading ? 'Loading...' : 'Apply'}
                                 </button>
                             </div>
                             {discountError && (

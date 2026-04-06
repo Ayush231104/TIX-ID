@@ -305,6 +305,7 @@ export async function getUserBookings(userId: string) {
         theater ( name, address ),
         screen ( name, type )
       ),
+      
       booking_seats ( *, seats ( seat_row, seat_col ) )
     `)
     .eq('user_id', userId)
