@@ -66,8 +66,9 @@ export default function TransactionHistory({ bookings, category, onSelectTicket 
               <div className="flex items-center justify-start sm:justify-end mt-4 sm:mt-0">
                 <button 
                   onClick={() => onSelectTicket(booking)}
-                  className={`px-8 py-2.5 rounded-lg text-white font-medium transition-opacity hover:opacity-90 
-                    ${isSuccess ? 'bg-[#008CF5]' : 'bg-[#FF5A5F]'}`}
+                  disabled={!isSuccess}
+                  className={`px-8 py-2.5 rounded-lg text-white font-medium transition-opacity  
+                    ${isSuccess ? 'bg-[#008CF5] hover:opacity-90' : 'bg-[#FF5A5F]'}`}
                 >
                   {isSuccess ? 'Success' : booking.booking_status === 'cancelled' ? 'Cancelled' : 'Failed'}
                 </button>

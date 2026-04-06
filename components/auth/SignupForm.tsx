@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import Link from 'next/link';
 import Typography from '../ui/Typography';
+import { useRouter } from 'next/navigation';
 
 const supabase = createClient();
 
@@ -13,14 +14,16 @@ export default function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [authMessage, setAuthMessage] = useState<{ type: 'error' | 'success', text: string } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
+  const router = useRouter();
   const { register, handleSubmit, formState: { errors } } = useForm();
 
   const onSubmit = async (data: FieldValues) => {
     setIsLoading(true);
     setAuthMessage(null);
 
-    const { error } = await supabase.auth.signUp({
+    const { data: authData, error} = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
@@ -31,13 +34,30 @@ export default function SignupForm() {
       },
     });
 
+    console.log({authData, error})
+
     if (error) {
       setAuthMessage({ type: 'error', text: error.message });
-    } else {
-      setAuthMessage({ type: 'success', text: 'Registration successful! Please check your email.' });
+      setIsLoading(false);
+      return;
+    } 
+    
+    if (authData?.user?.identities && authData.user.identities.length === 0) {
+      setAuthMessage({ 
+        type: 'error', 
+        text: 'This email is already registered. Please log in instead.' 
+      });
+      setIsLoading(false);
+      return;
     }
 
+    setShowSuccessModal(true);
     setIsLoading(false);
+  }; 
+
+  const handleModalOk = () => {
+    setShowSuccessModal(false);
+    router.push('/login'); 
   };
 
   const hasError = !!errors.fullName || !!errors.email || !!errors.password;
@@ -104,9 +124,8 @@ export default function SignupForm() {
           {errors.password && <span className="text-red-500 text-[12px] mt-2">{errors.password.message as string}</span>}
         </div>
 
-        {/* Global Auth Messages from Supabase */}
-        {authMessage && (
-          <div className={`text-sm p-3 rounded mt-2 ${authMessage.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+        {authMessage && authMessage.type === 'error' && (
+          <div className="text-sm p-3 rounded mt-2 bg-red-50 text-red-600">
             {authMessage.text}
           </div>
         )}
@@ -136,6 +155,24 @@ export default function SignupForm() {
       <Typography variant='body-small' className="text-black mt-27">
         © 2026 TIX ID. All rights reserved.
       </Typography>
+
+      {showSuccessModal && (
+        <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-2xl p-8 max-w-sm w-full mx-auto shadow-xl text-center'>
+            <h2 className='text-2xl font-bold text-green-500 mb-2'>Registration Successful!</h2>
+            <p className='text-shade-600 text-sm mb-8'>
+              We have sent a confirmation link to your email address. Please verify your email to log in.
+            </p>
+            
+            <button 
+              onClick={handleModalOk} 
+              className='w-full py-3 bg-royal-blue-default text-white font-bold rounded-xl hover:bg-royal-blue-hover transition-all cursor-pointer'
+            >
+              Okay, go to Login
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

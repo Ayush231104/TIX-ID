@@ -19,9 +19,9 @@ import {
     setSelectedShowtime,
     toggleSeat
 } from '@/lib/features/slice/bookingSlice';
-import toast from 'react-hot-toast';
 import { cancelPaymentAndBooking } from '@/actions/paymentVerification';
 import Typography from '@/components/ui/Typography';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const supabase = createClient();
 
@@ -72,22 +72,23 @@ export default function PaymentPage() {
     const [buyError, setBuyError] = useState('')
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const isRedirectingRef = useRef(false);
 
-    const handleTimeout = async () => {
-        toast.error("Time expired! Your seats have been released.");
-        const currentBookingId = sessionStorage.getItem('tix_pending_booking_id');
+    // const handleTimeout = async () => {
+    //     toast.error("Time expired! Your seats have been released.");
+    //     const currentBookingId = sessionStorage.getItem('tix_pending_booking_id');
 
-        if (currentBookingId) {
-            await cancelPaymentAndBooking(currentBookingId);
-        } else if (selectedShowtime?.id && selectedSeatIds.length > 0) {
-            await releaseSeats(selectedShowtime.id, selectedSeatIds);
-        }
+    //     if (currentBookingId) {
+    //         await cancelPaymentAndBooking(currentBookingId);
+    //     } else if (selectedShowtime?.id && selectedSeatIds.length > 0) {
+    //         await releaseSeats(selectedShowtime.id, selectedSeatIds);
+    //     }
 
-        dispatch(resetBooking());
-        sessionStorage.removeItem('tix_cart');
-        sessionStorage.removeItem('tix_pending_booking_id');
-        router.push(`/booking/${movieId}`);
-    }
+    //     dispatch(resetBooking());
+    //     sessionStorage.removeItem('tix_cart');
+    //     sessionStorage.removeItem('tix_pending_booking_id');
+    //     router.push(`/booking/${movieId}`);
+    // }
 
     useEffect(() => {
         if (!selectedMovie && !selectedShowtime && selectedSeatIds.length > 0) {
@@ -104,14 +105,13 @@ export default function PaymentPage() {
                 return;
             }
         }
+        const currentTimer = timerRef.current;
 
-    
         return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
+            if (currentTimer) clearInterval(currentTimer);
         };
-    }, [selectedMovie, selectedShowtime, selectedSeatIds.length, movieId, router, dispatch, ]);
+    }, [selectedMovie, selectedShowtime, selectedSeatIds.length, movieId, router, dispatch,]);
 
-    // 🚀 INTERCEPT BROWSER BACK BUTTON
     useEffect(() => {
         window.history.pushState(null, '', window.location.href);
 
@@ -126,9 +126,9 @@ export default function PaymentPage() {
         };
     }, []);
 
-    // 🚀 INTERCEPT TAB CLOSE OR REFRESH
     useEffect(() => {
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (isRedirectingRef.current) return;
             e.preventDefault();
         };
         window.addEventListener('beforeunload', handleBeforeUnload);
@@ -137,7 +137,6 @@ export default function PaymentPage() {
         };
     }, []);
 
-    // BUTTON HANDLERS
     const handleBackConfirm = async () => {
         setBuying(true);
         const currentBookingId = sessionStorage.getItem('tix_pending_booking_id');
@@ -200,7 +199,7 @@ export default function PaymentPage() {
 
             if (currentBookingId && currentBookingId !== 'null' && currentBookingId !== 'undefined' && savedCartRaw) {
                 const savedCart = JSON.parse(savedCartRaw);
-                
+
                 const isSameShowtime = savedCart.showtime?.id === selectedShowtime!.id;
                 const isSameSeats = savedCart.seats?.join(',') === selectedSeatIds.join(',');
 
@@ -208,7 +207,7 @@ export default function PaymentPage() {
                     needsNewBooking = false;
                 }
             }
-            
+
             if (needsNewBooking) {
                 console.log("Creating fresh booking in database...");
                 const bookingResult = await createBooking(
@@ -228,7 +227,7 @@ export default function PaymentPage() {
                     setBuying(false)
                     return
                 }
-                
+
                 currentBookingId = bookingResult.data.id;
 
                 if (!currentBookingId) {
@@ -257,8 +256,10 @@ export default function PaymentPage() {
             if (!stripeResult.success || !stripeResult.url) {
                 setBuyError(stripeResult.error ?? 'Failed to create payment session')
                 setBuying(false)
-                return 
+                return
             }
+
+            isRedirectingRef.current = true;
 
             window.location.href = stripeResult.url
 
@@ -281,7 +282,7 @@ export default function PaymentPage() {
                 </div>
             </div>
 
-            <div className='flex flex-col md:flex-row px-6 md:px-16 gap-8 sm:gap-20 mt-4 sm:mt-20'>
+            <div className='flex flex-col md:flex-row justify-between px-6 md:px-16 gap-8 sm:gap-20 mt-4 sm:mt-20'>
                 <div className='max-w-106 sm:w-106'>
                     <Typography variant='h3' color='shade-900'>Schedule Details</Typography>
 
@@ -354,7 +355,7 @@ export default function PaymentPage() {
                     </div>
 
                     <hr className='w-full h-px text-shade-200' />
-                    
+
                     <div className='flex justify-between items-center my-4'>
                         <span className='text-shade-900 text-[16px]'>Subtotal</span>
                         <span className='text-shade-900 text-[16px] font-normal'>
@@ -421,6 +422,13 @@ export default function PaymentPage() {
                     <div className='text-xs text-red-400 mb-4'>
                         * Ticket purchases cannot be cancelled
                     </div>
+
+                    {buyError && (
+                        <div className='text-red-500 text-sm font-medium mb-4 bg-red-50 p-3 rounded-lg border border-red-200'>
+                            {buyError}
+                        </div>
+                    )}
+
                     <button
                         onClick={handleBuy}
                         disabled={buying}
@@ -432,21 +440,15 @@ export default function PaymentPage() {
             </div>
 
             {showBackModal && (
-                <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50'>
-                    <div className='bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-xl'>
-                        <div className='flex items-center justify-between mb-4'>
-                            <h2 className='text-xl font-bold text-shade-900'>Want to go back?</h2>
-                            <button onClick={() => setShowBackModal(false)} className='text-shade-400 hover:text-shade-900 text-2xl cursor-pointer'>x</button>
-                        </div>
-                        <p className='text-shade-600 text-sm mb-6'>The seats you selected will be released and you will need to select again.</p>
-                        <div className='flex gap-3 justify-end'>
-                            <button onClick={() => setShowBackModal(false)} className='px-6 py-2.5 border border-shade-300 rounded-xl text-shade-900 hover:bg-shade-100 transition-all cursor-pointer'>Cancel</button>
-                            <button onClick={handleBackConfirm} disabled={buying} className='px-6 py-2.5 bg-royal-blue text-white font-bold rounded-xl hover:bg-royal-blue-hover transition-all cursor-pointer'>
-                                {buying ? 'Cancelling...' : 'Go Back'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <ConfirmModal
+                    isOpen={showBackModal}
+                    onClose={() => setShowBackModal(false)}
+                    onConfirm={handleBackConfirm}
+                    title="Want to go back?"
+                    description="The seats you selected will be released and you will need to select again."
+                    confirmText={buying ? 'Cancelling...' : 'Go Back'}
+                    isLoading={buying}
+                />
             )}
         </div>
     )

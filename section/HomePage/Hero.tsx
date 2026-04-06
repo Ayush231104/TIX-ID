@@ -2,7 +2,9 @@
 import Image from 'next/image';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import 'swiper/css';
+import 'swiper/css'
+import 'swiper/css/navigation'
+import 'swiper/css/free-mode'
 import { Autoplay, Navigation } from 'swiper/modules'
 import MoviesForm from '@/components/admin/MoviesForm';
 import { useState} from 'react';

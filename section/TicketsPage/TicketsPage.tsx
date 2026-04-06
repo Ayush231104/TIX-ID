@@ -76,7 +76,7 @@ export default function TicketsPage({ initialBookings }: TicketsPageProps) {
     <div className="flex flex-col md:flex-row min-h-[calc(100vh-80px)]">
       
       {!selectedTicket && (
-        <div className="w-full md:w-75 bg-[#F5F6F8] border-r border-shade-200 shrink-0">
+        <div className="w-full md:max-w-75 bg-[#F5F6F8] border-r border-shade-200">
           <div className="py-4 sm:pt-8">
             <button
               onClick={() => { setActiveTab('active'); setSelectedTicket(null); }}
@@ -91,13 +91,13 @@ export default function TicketsPage({ initialBookings }: TicketsPageProps) {
             
             <button
               onClick={() => { setActiveTab('history'); setSelectedTicket(null); }}
-              className={`shrink-0 flex items-center gap-4 w-full px-8 py-4 text-left font-medium transition-colors
+              className={`flex items-center gap-4 w-full px-8 py-4 text-left font-medium transition-colors
                 ${activeTab === 'history' 
                   ? 'bg-white text-sky-blue shadow-sm' 
                   : 'text-shade-600 hover:bg-white/50'}`}
             >
               <IoReceiptOutline className="text-xl shrink-0" />
-              <Typography variant='h4' color='shade-900' className='shrink-0'>TRANSACTION HISTORY</Typography>
+              <Typography variant='h4' color='shade-900'>TRANSACTION HISTORY</Typography>
             </button>
           </div>
         </div>

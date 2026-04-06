@@ -51,7 +51,6 @@ export default function DateSelector({
         allowTouchMove={true}
         className='mySwiper static!'
       >
-        {/* Prev Arrow */}
         <button
           className='swiper-prev absolute left-0 top-1/2 -translate-y-1/2 z-10
             w-7 h-7 flex items-center justify-center
@@ -81,7 +80,7 @@ export default function DateSelector({
                   }
                 `}
               >
-                <span className='text-[16px] font-medium text-shade-600'>
+                <span className='text-[16px] font-medium text-shade-500'>
                   {getDateNumber(date)} {getMonthName(date)}
                 </span>
                 <span className='text-[20px] font-bold mt-0.5'>

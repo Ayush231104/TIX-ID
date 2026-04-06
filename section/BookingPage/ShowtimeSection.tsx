@@ -2,8 +2,7 @@
 
 import Skeleton from '@/components/ui/Skeleton'
 import { Brand, City, Screen, ShowtimeForBooking, Theater } from '@/types'
-import { createClient } from '@/utils/supabase/client'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ImStarFull } from 'react-icons/im'
 import { SortOption } from './Bookshow'
 import { useGetShowtimesQuery } from '@/lib/features/api/bookingApi'
@@ -29,8 +28,6 @@ type TheaterGroup = {
 	theater: Theater & { brands: Brand | null; cities: City | null }
 	screens: ScreenGroup[]
 }
-
-const supabase = createClient()
 
 const formatTime = (timestamp: string) =>
 	new Date(timestamp).toLocaleTimeString('en-IN', {
@@ -402,7 +399,7 @@ export default function ShowtimeSection({
 								<div className='font-medium text-[18px] sm:text-2xl text-shade-600 leading-8'>
 									{screen.name}
 								</div>
-								<div className='text-[18px] font-normal leading-7 text-shade-600'>
+								<div className='text-[18px] font-normal leading-7 text-shade-600 '>
 									{getPriceRange(showtimes)}
 								</div>
 							</div>
