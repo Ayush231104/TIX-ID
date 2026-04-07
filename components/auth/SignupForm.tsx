@@ -7,14 +7,22 @@ import { FiEye, FiEyeOff } from 'react-icons/fi';
 import Link from 'next/link';
 import Typography from '../ui/Typography';
 import { useRouter } from 'next/navigation';
+import ConfirmModal from '@/components/ui/ConfirmModal'; 
 
 const supabase = createClient();
+
+// 🚀 Added 'duplicate' to our modal states
+type ModalType = 'success' | 'duplicate' | 'resent' | 'alreadyVerified' | null;
 
 export default function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [authMessage, setAuthMessage] = useState<{ type: 'error' | 'success', text: string } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
+  
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [isResending, setIsResending] = useState(false);
 
   const router = useRouter();
   const { register, handleSubmit, formState: { errors } } = useForm();
@@ -22,6 +30,7 @@ export default function SignupForm() {
   const onSubmit = async (data: FieldValues) => {
     setIsLoading(true);
     setAuthMessage(null);
+    setUnverifiedEmail(null); 
 
     const { data: authData, error} = await supabase.auth.signUp({
       email: data.email,
@@ -34,33 +43,104 @@ export default function SignupForm() {
       },
     });
 
-    console.log({authData, error})
-
     if (error) {
       setAuthMessage({ type: 'error', text: error.message });
       setIsLoading(false);
       return;
     } 
     
+    // 🚀 EDGE CASE: Duplicate Email
     if (authData?.user?.identities && authData.user.identities.length === 0) {
-      setAuthMessage({ 
-        type: 'error', 
-        text: 'This email is already registered. Please log in instead.' 
-      });
+      setUnverifiedEmail(data.email); 
+      setActiveModal('duplicate'); // Open the duplicate popup instantly
       setIsLoading(false);
       return;
     }
 
-    setShowSuccessModal(true);
+    // Standard Success Case
+    setActiveModal('success');
     setIsLoading(false);
   }; 
 
-  const handleModalOk = () => {
-    setShowSuccessModal(false);
-    router.push('/login'); 
+  const handleResendEmail = async () => {
+    if (!unverifiedEmail) return;
+    setIsResending(true);
+    setAuthMessage(null);
+
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: unverifiedEmail,
+      options: {
+        emailRedirectTo: `${window.location.origin}/callback`,
+      },
+    });
+
+    setIsResending(false);
+
+    if (error) {
+      const msg = error.message.toLowerCase();
+      if (error.status === 422 || msg.includes('already verified') || msg.includes('already confirmed')) {
+        setActiveModal('alreadyVerified'); // Switch to Already Verified modal
+      } 
+      else if (error.status === 429) {
+        setActiveModal(null);
+        setAuthMessage({ type: 'error', text: 'Please wait a minute before requesting another email.' });
+      } 
+      else {
+        setActiveModal(null);
+        setAuthMessage({ type: 'error', text: error.message });
+      }
+    } else {
+      setActiveModal('resent'); 
+    }
   };
 
   const hasError = !!errors.fullName || !!errors.email || !!errors.password;
+
+  const getModalConfig = () => {
+    switch (activeModal) {
+      case 'success':
+        return {
+          title: "Registration Successful!",
+          description: "We have sent a confirmation link to your email address. Please verify your email to log in.",
+          confirmText: "Go to Login",
+          cancelText: "Close",
+          onConfirm: () => router.push('/login'),
+          onClose: () => setActiveModal(null),
+        };
+      case 'duplicate':
+        return {
+          title: "Email Already Registered",
+          description: "This email is already in our system. If you haven't verified it yet, we can resend the link. Otherwise, please log in.",
+          confirmText: "Resend Email",
+          cancelText: "Go to Login",
+          onConfirm: handleResendEmail, 
+          onClose: () => router.push('/login'), 
+        };
+      case 'resent':
+        return {
+          title: "Verification Email Sent",
+          description: "We've resent the verification link to your email. Please check your inbox and verify to log in.",
+          confirmText: "Go to Login",
+          cancelText: "Close",
+          onConfirm: () => router.push('/login'),
+          onClose: () => setActiveModal(null),
+        };
+      case 'alreadyVerified':
+        return {
+          title: "Account Already Active",
+          description: "Good news! This email address is already verified and has an active account. Please proceed to the login page.",
+          confirmText: "Go to Login",
+          cancelText: "Close",
+          onConfirm: () => router.push('/login'),
+          onClose: () => setActiveModal(null),
+        };
+      default:
+        return null;
+    }
+  };
+
+  const modalConfig = getModalConfig();
 
   return (
     <div className="p-10 sm:px-20 sm:pt-15 md:px-25 md:pt-20">
@@ -81,7 +161,6 @@ export default function SignupForm() {
           {errors.fullName && <span className="text-red-500 text-[12px] mt-2">{errors.fullName.message as string}</span>}
         </div>
 
-        {/* Email Input */}
         <div className="flex flex-col">
           <Typography variant='body-large' className={`tracking-wide uppercase mb-2 ${errors.email ? 'text-red-500' : 'text-shade-900'}`}>
             Email
@@ -95,7 +174,6 @@ export default function SignupForm() {
           {errors.email && <span className="text-red-500 text-[12px] mt-2">{errors.email.message as string}</span>}
         </div>
 
-        {/* Password Input */}
         <div className="flex flex-col relative">
           <Typography variant='body-large' className={`tracking-wide uppercase mb-2 ${errors.password ? 'text-red-500' : 'text-shade-900'}`}>
             Password
@@ -124,17 +202,17 @@ export default function SignupForm() {
           {errors.password && <span className="text-red-500 text-[12px] mt-2">{errors.password.message as string}</span>}
         </div>
 
-        {authMessage && authMessage.type === 'error' && (
-          <div className="text-sm p-3 rounded mt-2 bg-red-50 text-red-600">
-            {authMessage.text}
+        {authMessage && (
+          <div className={`text-sm p-4 rounded mt-2 flex flex-col gap-2 ${authMessage.type === 'error' ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`}>
+            <span>{authMessage.text}</span>
           </div>
         )}
 
         <div className='mt-2'>
           <button
             type="submit"
-            disabled={isLoading}
-            className={`w-full py-3 rounded-[5.07px] text-xl mt-6.5 ${hasError ? 'bg-shade-200 text-shade-400 cursor-not-allowed' : 'bg-royal-blue-default hover:bg-royal-blue-hover text-white font-medium'} transition-colors`}
+            disabled={isLoading || isResending}
+            className={`w-full py-3 rounded-[5.07px] text-xl mt-6.5 ${hasError ? 'bg-shade-200 text-shade-400 cursor-not-allowed' : 'bg-royal-blue-default hover:bg-royal-blue-hover text-white font-medium'} transition-colors cursor-pointer`}
           >
             {isLoading ? 'Processing...' : 'Register Now'}
           </button>
@@ -145,7 +223,7 @@ export default function SignupForm() {
 
           <Link
             href="/login"
-            className={`w-full block text-center px-2 py-3 rounded-[5.07px] font-medium text-xl border border-shade-600 text-royal-blue hover:bg-royal-blue-hover hover:text-white active:text-white active:bg-royal-blue-while-pressed transition-colors ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
+            className={`w-full block text-center px-2 py-3 rounded-[5.07px] font-medium text-xl border border-shade-600 text-royal-blue hover:bg-royal-blue-hover hover:text-white active:text-white active:bg-royal-blue-while-pressed transition-colors ${(isLoading || isResending) ? 'pointer-events-none opacity-50' : ''}`}
           >
             Login Now
           </Link>
@@ -156,23 +234,19 @@ export default function SignupForm() {
         © 2026 TIX ID. All rights reserved.
       </Typography>
 
-      {showSuccessModal && (
-        <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'>
-          <div className='bg-white rounded-2xl p-8 max-w-sm w-full mx-auto shadow-xl text-center'>
-            <h2 className='text-2xl font-bold text-green-500 mb-2'>Registration Successful!</h2>
-            <p className='text-shade-600 text-sm mb-8'>
-              We have sent a confirmation link to your email address. Please verify your email to log in.
-            </p>
-            
-            <button 
-              onClick={handleModalOk} 
-              className='w-full py-3 bg-royal-blue-default text-white font-bold rounded-xl hover:bg-royal-blue-hover transition-all cursor-pointer'
-            >
-              Okay, go to Login
-            </button>
-          </div>
-        </div>
+      {modalConfig && (
+        <ConfirmModal
+          isOpen={!!activeModal}
+          onClose={modalConfig.onClose}
+          onConfirm={modalConfig.onConfirm}
+          title={modalConfig.title}
+          description={modalConfig.description}
+          confirmText={isResending ? 'Sending...' : modalConfig.confirmText}
+          cancelText={modalConfig.cancelText}
+          isLoading={isResending} 
+        />
       )}
+      
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
-import { getNewsAction, getArticleAction, likeNews } from '@/actions/newsActions';
+import { getNewsAction, getArticleAction, toggleLikeNews } from '@/actions/newsActions';
 import type { NewsCard } from '@/types/index';
 
 export const newsApi = createApi({
@@ -21,7 +21,7 @@ export const newsApi = createApi({
             providesTags: ['News'],
         }),
 
-        getArticle: builder.query<{ article: NewsCard; relatedNews: NewsCard[] }, string>({
+        getArticle: builder.query<{ article: NewsCard; relatedNews: NewsCard[]; isLikedByMe: boolean }, string>({
             queryFn: async (id) => {
                 try {
                     const result = await getArticleAction(id);
@@ -35,11 +35,10 @@ export const newsApi = createApi({
             providesTags: (result, error, id) => [{ type: 'Article', id }],
         }),
 
-        // Like Mutation
         likeArticle: builder.mutation<void, { id: string; currentLikes: number }>({
             queryFn: async ({ id, currentLikes }) => {
                 try {
-                    const result = await likeNews(id, currentLikes);
+                    const result = await toggleLikeNews(id, currentLikes);
                     if (!result.success) return { error: { message: result.error } };
                     return { data: undefined };
                 } catch (error) {

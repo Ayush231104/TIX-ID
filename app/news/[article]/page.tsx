@@ -3,10 +3,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation'
 import { FaFacebook, FaInstagram, FaTwitter } from 'react-icons/fa';
-import { RiThumbUpLine } from 'react-icons/ri';
+import { RiThumbUpFill, RiThumbUpLine } from 'react-icons/ri';
 import { useGetArticleQuery, useLikeArticleMutation } from '@/lib/features/api/newsApi';
 import Skeleton from '@/components/ui/Skeleton';
 import Typography from '@/components/ui/Typography';
+import toast from 'react-hot-toast';
 
 
 export default function ArticlePage() {
@@ -14,12 +15,14 @@ export default function ArticlePage() {
   const id = params.article as string;
 
   const { data, isLoading, isError } = useGetArticleQuery(id, { skip: !id });
-
-  const [likeArticle, { isLoading: isLiking }] = useLikeArticleMutation();
+  const [toggleLike, { isLoading: isLiking }] = useLikeArticleMutation();
 
   const handleLikeChange = async () => {
     if (!data?.article || isLiking) return;
-    await likeArticle({ id: data.article.id, currentLikes: data.article.likes ?? 0 });
+    const result = await toggleLike({ id: data.article.id, currentLikes: data.article.likes ?? 0 });
+    if (result.error) {
+      toast.error("You must be logged in to like articles.");
+    }
   }
 
   if (isLoading) return (
@@ -86,7 +89,7 @@ export default function ArticlePage() {
     <div className="w-full text-center py-20 text-gray-500">Article not found.</div>
   );
 
-  const { article, relatedNews } = data;
+  const { article, relatedNews, isLikedByMe } = data;
 
   return (
     <div>
@@ -138,21 +141,21 @@ export default function ArticlePage() {
           <button
             onClick={handleLikeChange}
             disabled={isLiking}
-            className={`px-4 py-2 border rounded-[59px] border-shade-800 transition-colors ${isLiking ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-100'
-              }`}
+            className={`px-4 py-2 border rounded-[59px] transition-colors flex items-center gap-2 
+              ${isLiking ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-100'} 
+              ${isLikedByMe ? 'bg-royal-blue text-white border-royal-blue hover:bg-royal-blue-hover' : 'border-shade-800 text-shade-900'}
+            `}
           >
-            <div className='flex gap-1 items-center'>
-              <RiThumbUpLine size={24} />
-              <div className='text-xl font-normal text-shade-900'>{article.likes ?? 0}</div>
-            </div>
+            {isLikedByMe ? <RiThumbUpFill size={24} /> : <RiThumbUpLine size={24} />}
+            <span className='text-xl font-normal'>{article.likes ?? 0}</span>
           </button>
         </div>
 
-      
+
         <div className="flex justify-start overflow-x-auto gap-5 mt-12 pb-8 no-scrollbar">
           {relatedNews.map((item) => (
-            <Link 
-              href={`${item.id}`} 
+            <Link
+              href={`${item.id}`}
               key={item.id}
               className=" w-[85vw] md:w-90 lg:w-104 "
             >
