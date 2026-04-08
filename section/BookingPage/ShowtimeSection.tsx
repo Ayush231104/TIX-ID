@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react'
 import { ImStarFull } from 'react-icons/im'
 import { SortOption } from './Bookshow'
 import { useGetShowtimesQuery } from '@/lib/features/api/bookingApi'
+import Typography from '@/components/ui/Typography'
 
 type LeanShowtime = {
 	id: string
@@ -352,8 +353,8 @@ export default function ShowtimeSection({
 
 	if (grouped.length === 0) {
 		return (
-			<div className='mt-6 text-shade-400 text-[16px]'>
-				No showtimes available for this date.
+			<div className='min-h-50 mt-6 text-shade-400 text-[16px] flex justify-center items-center'>
+				<Typography variant='h4' color='shade-600'>No showtimes available for the selected date.</Typography>
 			</div>
 		)
 	}

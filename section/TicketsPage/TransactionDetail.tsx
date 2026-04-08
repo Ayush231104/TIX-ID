@@ -5,6 +5,7 @@ import type { EnrichedBooking } from './TicketsPage';
 import { useState } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import TicketPDF from '@/components/pdf/TicketPDF';
+import { useRouter } from 'next/navigation'; // 🚀 Added useRouter
 
 type TransactionTicket = EnrichedBooking & {
   discount?: {
@@ -14,7 +15,7 @@ type TransactionTicket = EnrichedBooking & {
 
 interface TransactionDetailProps {
   ticket: TransactionTicket;
-  onBack: () => void;
+  // 🚀 DELETED: onBack prop. The component handles this itself now.
 }
 
 const formatFullDate = (dateString: string): string => {
@@ -35,9 +36,10 @@ const getSeatLabel = (row: number, col: number): string => {
   return `${String.fromCharCode(64 + row)}${col}`;
 };
 
-export default function TransactionDetail({ ticket, onBack }: TransactionDetailProps) {
+export default function TransactionDetail({ ticket }: TransactionDetailProps) {
   const [passwordKey] = useState(() => Math.floor(100000 + Math.random() * 900000));
   const isClient = typeof window !== 'undefined';
+  const router = useRouter(); // 🚀 Initialize router
 
   if (!ticket || !ticket.showtimes) {
     return (
@@ -75,7 +77,6 @@ export default function TransactionDetail({ ticket, onBack }: TransactionDetailP
       </h1>
 
       <div className="max-w-xl mx-4 sm:mx-auto mb-10 relative overflow-hidden rounded-t-xl">
-        
         <div className="bg-royal-blue-default text-white p-6 sm:p-8 rounded-t-xl">
           <h2 className="text-xl sm:text-2xl font-bold text-[#F2C96F] mb-6">{movie?.name || 'Movie'}</h2>
           
@@ -106,9 +107,7 @@ export default function TransactionDetail({ ticket, onBack }: TransactionDetailP
         </div>
 
         <div className="w-full bg-[#F2C96F] p-6 sm:p-8 pb-10 sm:pb-12 text-royal-blue-default relative">
-          
           <div className="sm:flex justify-between items-start sm:items-center gap-4">
-            
             <div className="space-y-4 flex-1">
               <div className="grid grid-cols-[100px_1fr] sm:grid-cols-[120px_1fr]">
                 <span className="text-xs sm:text-sm font-medium opacity-80">Booking Code</span>
@@ -187,7 +186,7 @@ export default function TransactionDetail({ ticket, onBack }: TransactionDetailP
         </div>
 
         <button 
-          onClick={onBack}
+          onClick={() => router.push('/tickets')}
           className="flex items-center gap-3 text-royal-blue font-bold text-base sm:text-lg hover:text-royal-blue-hover transition cursor-pointer"
         >
           <GoArrowLeft className="text-xl sm:text-2xl" />

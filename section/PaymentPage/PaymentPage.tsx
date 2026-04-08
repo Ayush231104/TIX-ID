@@ -74,22 +74,6 @@ export default function PaymentPage() {
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const isRedirectingRef = useRef(false);
 
-    // const handleTimeout = async () => {
-    //     toast.error("Time expired! Your seats have been released.");
-    //     const currentBookingId = sessionStorage.getItem('tix_pending_booking_id');
-
-    //     if (currentBookingId) {
-    //         await cancelPaymentAndBooking(currentBookingId);
-    //     } else if (selectedShowtime?.id && selectedSeatIds.length > 0) {
-    //         await releaseSeats(selectedShowtime.id, selectedSeatIds);
-    //     }
-
-    //     dispatch(resetBooking());
-    //     sessionStorage.removeItem('tix_cart');
-    //     sessionStorage.removeItem('tix_pending_booking_id');
-    //     router.push(`/booking/${movieId}`);
-    // }
-
     useEffect(() => {
         if (!selectedMovie && !selectedShowtime && selectedSeatIds.length > 0) {
             const savedCartRaw = sessionStorage.getItem('tix_cart');
@@ -269,7 +253,9 @@ export default function PaymentPage() {
             setBuying(false)
         }
     }
-    if (!selectedMovie || !selectedShowtime) return null;
+    if (!selectedMovie || !selectedShowtime || selectedSeatIds.length === 0) {
+        router.replace('/');
+    }
 
     return (
         <div className='mb-30'>

@@ -7,20 +7,19 @@ import { FiEye, FiEyeOff } from 'react-icons/fi';
 import Link from 'next/link';
 import Typography from '../ui/Typography';
 import { useRouter } from 'next/navigation';
-import ConfirmModal from '@/components/ui/ConfirmModal'; 
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const supabase = createClient();
 
-// 🚀 Added 'duplicate' to our modal states
 type ModalType = 'success' | 'duplicate' | 'resent' | 'alreadyVerified' | null;
 
 export default function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [authMessage, setAuthMessage] = useState<{ type: 'error' | 'success', text: string } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [activeModal, setActiveModal] = useState<ModalType>(null);
-  
+
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [isResending, setIsResending] = useState(false);
 
@@ -30,37 +29,44 @@ export default function SignupForm() {
   const onSubmit = async (data: FieldValues) => {
     setIsLoading(true);
     setAuthMessage(null);
-    setUnverifiedEmail(null); 
+    setUnverifiedEmail(null);
 
-    const { data: authData, error} = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-      options: {
-        data: {
-          full_name: data.fullName,
-        },
-        emailRedirectTo: `${window.location.origin}/callback`,
-      },
-    });
+    try {
+      const { data: existingUser, error: fetchError } = await supabase
+        .from('user_status')
+        .select('email, is_verified')
+        .eq('email', data.email)
+        .maybeSingle();
 
-    if (error) {
-      setAuthMessage({ type: 'error', text: error.message });
+      if (fetchError) throw fetchError;
+
+      if (!existingUser) {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: data.email,
+          password: data.password,
+          options: {
+            data: {
+              full_name: data.fullName,
+            },
+            emailRedirectTo: `${window.location.origin}/callback`,
+          },
+        });
+
+        if (signUpError) throw signUpError;
+
+        setActiveModal('success');
+      } else if (existingUser.is_verified) {
+        setActiveModal('alreadyVerified');
+      } else {
+        setUnverifiedEmail(data.email);
+        setActiveModal('duplicate');
+      }
+    } catch (err: unknown) {
+      setAuthMessage({ type: 'error', text: (err as Error).message });
+    } finally {
       setIsLoading(false);
-      return;
-    } 
-    
-    // 🚀 EDGE CASE: Duplicate Email
-    if (authData?.user?.identities && authData.user.identities.length === 0) {
-      setUnverifiedEmail(data.email); 
-      setActiveModal('duplicate'); // Open the duplicate popup instantly
-      setIsLoading(false);
-      return;
     }
-
-    // Standard Success Case
-    setActiveModal('success');
-    setIsLoading(false);
-  }; 
+  };
 
   const handleResendEmail = async () => {
     if (!unverifiedEmail) return;
@@ -78,20 +84,20 @@ export default function SignupForm() {
     setIsResending(false);
 
     if (error) {
-      const msg = error.message.toLowerCase();
+      const msg = (error as Error).message.toLowerCase();
       if (error.status === 422 || msg.includes('already verified') || msg.includes('already confirmed')) {
-        setActiveModal('alreadyVerified'); // Switch to Already Verified modal
-      } 
+        setActiveModal('alreadyVerified');
+      }
       else if (error.status === 429) {
         setActiveModal(null);
         setAuthMessage({ type: 'error', text: 'Please wait a minute before requesting another email.' });
-      } 
+      }
       else {
         setActiveModal(null);
-        setAuthMessage({ type: 'error', text: error.message });
+        setAuthMessage({ type: 'error', text: (error as Error).message });
       }
     } else {
-      setActiveModal('resent'); 
+      setActiveModal('resent');
     }
   };
 
@@ -103,7 +109,7 @@ export default function SignupForm() {
         return {
           title: "Registration Successful!",
           description: "We have sent a confirmation link to your email address. Please verify your email to log in.",
-          confirmText: "Go to Login",
+          confirmText: "OK",
           cancelText: "Close",
           onConfirm: () => router.push('/login'),
           onClose: () => setActiveModal(null),
@@ -113,9 +119,9 @@ export default function SignupForm() {
           title: "Email Already Registered",
           description: "This email is already in our system. If you haven't verified it yet, we can resend the link. Otherwise, please log in.",
           confirmText: "Resend Email",
-          cancelText: "Go to Login",
-          onConfirm: handleResendEmail, 
-          onClose: () => router.push('/login'), 
+          cancelText: "OK",
+          onConfirm: handleResendEmail,
+          onClose: () => router.push('/login'),
         };
       case 'resent':
         return {
@@ -129,8 +135,8 @@ export default function SignupForm() {
       case 'alreadyVerified':
         return {
           title: "Account Already Active",
-          description: "Good news! This email address is already verified and has an active account. Please proceed to the login page.",
-          confirmText: "Go to Login",
+          description: "This email address is already verified and has an active account. Please proceed to the login page.",
+          confirmText: "OK",
           cancelText: "Close",
           onConfirm: () => router.push('/login'),
           onClose: () => setActiveModal(null),
@@ -196,7 +202,7 @@ export default function SignupForm() {
               onClick={() => setShowPassword(!showPassword)}
               className={`absolute right-0 top-0 bottom-2 transition-colors ${errors.password ? 'text-red-400' : 'text-shade-400 hover:text-shade-600'}`}
             >
-              {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+              {showPassword ? <FiEye size={20} /> : <FiEyeOff size={20} />}
             </button>
           </div>
           {errors.password && <span className="text-red-500 text-[12px] mt-2">{errors.password.message as string}</span>}
@@ -243,10 +249,12 @@ export default function SignupForm() {
           description={modalConfig.description}
           confirmText={isResending ? 'Sending...' : modalConfig.confirmText}
           cancelText={modalConfig.cancelText}
-          isLoading={isResending} 
+          isLoading={isResending}
+          showCancel= {activeModal === 'duplicate'}
+        showCloseIcon = {activeModal == 'duplicate'} 
         />
       )}
-      
+
     </div>
   );
 }

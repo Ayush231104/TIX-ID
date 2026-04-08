@@ -314,3 +314,31 @@ export async function getUserBookings(userId: string) {
   if (error) return { success: false, error: error.message };
   return { success: true, data };
 }
+
+export async function syncSeatsWithRPC(
+  showtimeId: string,
+  userId: string,
+  seatsToAdd: string[],
+  seatsToDel: string[]
+) {
+  const supabase = await createClient();
+
+  // Explicitly matching the exact parameter names from your SQL
+  const { data, error } = await supabase.rpc('sync_booking_seats', {
+    p_showtime_id: showtimeId,
+    p_user_id: userId,
+    p_seats_to_add: seatsToAdd,
+    p_seats_to_del: seatsToDel
+  });
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return data as {
+    success: boolean;
+    error?: string;
+    seat_id?: string;
+    held_seats?: string[];
+  };
+}

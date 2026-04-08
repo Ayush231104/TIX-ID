@@ -1,19 +1,21 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, usePathname, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useAppDispatch, useAppSelector } from '@/lib/hooks'
-import { toggleSeat, setSelectedShowtime, setSelectedMovie } from '@/lib/features/slice/bookingSlice'
+import { toggleSeat, setSelectedShowtime, setSelectedMovie, setSelectedSeats } from '@/lib/features/slice/bookingSlice'
 import SeatGrid from './SeatGrid'
 import type { SeatWithStatus, ShowtimeForBooking } from '@/types'
 import ShowtimeDropdown from './ShowtimeDropdown'
-import { bookingApi, useGetSeatsWithStatusQuery, useLockSeatsMutationMutation, useReleaseSeatsMutationMutation } from '@/lib/features/api/bookingApi'
+// 1. IMPORT bookingApi TO USE CACHE INVALIDATION
+import { bookingApi, useGetSeatsWithStatusQuery, useSyncSeatsMutationMutation, useReleaseSeatsMutationMutation } from '@/lib/features/api/bookingApi'
 import toast from 'react-hot-toast'
-import Skeleton from '@/components/ui/Skeleton'
+// import Skeleton from '@/components/ui/Skeleton' // Assuming you have this
 import Image from 'next/image'
-import Typography from '@/components/ui/Typography'
+// import Typography from '@/components/ui/Typography' // Assuming you have this
 import ConfirmModal from '@/components/ui/ConfirmModal'
+import Skeleton from '@/components/ui/Skeleton'
 
 const supabase = createClient()
 
@@ -33,9 +35,20 @@ function computeDiff(synced: string[], desired: string[]) {
   const syncedSet = new Set(synced)
   const desiredSet = new Set(desired)
   return {
-    toAdd: desired.filter(s => !syncedSet.has(s)),
-    toDelete: synced.filter(s => !desiredSet.has(s)),
+    toAdd: (desired ?? []).filter(s => !syncedSet.has(s)),
+    toDelete: (synced ?? []).filter(s => !desiredSet.has(s)),
   }
+}
+
+// Strictly type the expected Supabase realtime payload
+interface RealtimePayloadRecord {
+  user_id?: string;
+  [key: string]: unknown;
+}
+
+interface RealtimeChangePayload {
+  new?: RealtimePayloadRecord | null;
+  old?: RealtimePayloadRecord | null;
 }
 
 export default function SeatsPage() {
@@ -51,7 +64,7 @@ export default function SeatsPage() {
   const totalAmount = useAppSelector((s) => s.booking.totalAmount)
 
   const [confirming, setConfirming] = useState(false)
-  const [isSyncing, setIsSyncing] = useState(false) 
+  const [isSyncing, setIsSyncing] = useState(false)
   const [showBackModal, setShowBackModal] = useState(false)
 
   const queryArgs = useMemo(() => ({
@@ -59,29 +72,40 @@ export default function SeatsPage() {
     showtimeId: selectedShowtime?.id ?? ''
   }), [selectedShowtime?.screen_id, selectedShowtime?.id])
 
-  const isProceedingRef = useRef(false)
-  const syncedSeatsRef = useRef<string[]>([])
+  const lastSyncedRef = useRef<string[]>([])
   const pendingDesiredRef = useRef<string[]>([])
+  const pendingLabelsRef = useRef<string[]>(selectedSeatLabels)
   const debounceTimer = useRef<NodeJS.Timeout | null>(null)
-  const isSyncingRef = useRef(false)
-  const needsAnotherFlushRef = useRef(false)
-
-  useEffect(() => {
-    pendingDesiredRef.current = selectedSeatIds
-  }, [selectedSeatIds])
+  const isPushingDataRef = useRef<boolean>(false);
 
   const {
     data: seats = [],
     isLoading,
-    refetch: fetchSeats
-  } = useGetSeatsWithStatusQuery(queryArgs,
-    { skip: !selectedShowtime?.screen_id || !selectedShowtime?.id }
-  );
+  } = useGetSeatsWithStatusQuery(queryArgs, {
+    skip: !selectedShowtime?.screen_id || !selectedShowtime?.id,
+    refetchOnMountOrArgChange: false,
+  });
 
-  const [lockSeatsAction] = useLockSeatsMutationMutation();
+  const [syncSeatsAction] = useSyncSeatsMutationMutation();
   const [releaseSeatsAction] = useReleaseSeatsMutationMutation();
-
   const currentUserId = useAppSelector((state) => state.auth.user?.id ?? null);
+
+  const pathname = usePathname();
+
+  const [loginHref, setLoginHref] = useState('/login')
+
+  useEffect(() => {
+    const currentQuery = window.location.search
+    const currentPath = `${pathname}${currentQuery}`
+    
+    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname.startsWith('/forgotPassword')
+    
+    const nextLoginHref = isAuthPage || pathname === '/'
+      ? '/login'
+      : `/login?next=${encodeURIComponent(currentPath)}`
+      
+    setLoginHref(nextLoginHref)
+  }, [pathname])
 
   useEffect(() => {
     window.history.pushState(null, '', window.location.href);
@@ -90,212 +114,191 @@ export default function SeatsPage() {
       window.history.pushState(null, '', window.location.href);
     };
     window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // ── HYDRATION ──
   useEffect(() => {
     if (selectedShowtime && selectedMovie) return
-
     const backupRow = sessionStorage.getItem('tix_seats_backup')
     if (!backupRow) {
       router.replace(`/booking/${movieId}`)
       return
     }
-
     const backup = JSON.parse(backupRow)
     dispatch(setSelectedMovie(backup.movie))
     dispatch(setSelectedShowtime(backup.showtime))
-    backup.seatIds.forEach((id: string, index: number) => {
-      dispatch(toggleSeat({ id, label: backup.seatLabels[index] }))
-    })
+    dispatch(setSelectedSeats({ ids: backup.seatIds, labels: backup.seatLabels }))
 
-    syncedSeatsRef.current = backup.seatIds;
+    lastSyncedRef.current = backup.seatIds;
     pendingDesiredRef.current = backup.seatIds;
-  }, [])
+    pendingLabelsRef.current = backup.seatLabels;
+  }, [dispatch, movieId, router, selectedMovie, selectedShowtime])
 
   useEffect(() => {
     if (!selectedShowtime || !selectedMovie) return
     sessionStorage.setItem('tix_seats_backup', JSON.stringify({
-      showtime: selectedShowtime,
-      movie: selectedMovie,
-      seatIds: selectedSeatIds,
-      seatLabels: selectedSeatLabels,
+      showtime: selectedShowtime, movie: selectedMovie,
+      seatIds: selectedSeatIds, seatLabels: selectedSeatLabels,
     }))
   }, [selectedShowtime, selectedMovie, selectedSeatIds, selectedSeatLabels])
 
-
-  const flushNow = useCallback(async (): Promise<boolean> => {
-    if (!selectedShowtime?.id || !currentUserId) return true;
-
-    if (isSyncingRef.current) {
-        needsAnotherFlushRef.current = true;
-        return true;
-    }
-
-    const desired = pendingDesiredRef.current;
-    const synced = syncedSeatsRef.current;
-    const { toAdd, toDelete } = computeDiff(synced, desired);
-
-    if (toAdd.length === 0 && toDelete.length === 0) return true;
-
-    isSyncingRef.current = true;
-    setIsSyncing(true);
-
-    try {
-      if (toDelete.length > 0) {
-          await releaseSeatsAction({ showtimeId: selectedShowtime.id, seatIds: toDelete });
-          syncedSeatsRef.current = syncedSeatsRef.current.filter(id => !toDelete.includes(id));
-      }
-
-      if (toAdd.length > 0) {
-          const lockResult = await lockSeatsAction({ showtimeId: selectedShowtime.id, seatIds: toAdd, userId: currentUserId });
-          
-          if (lockResult.error) {
-              toAdd.forEach(id => dispatch(toggleSeat({ id, label: '' })));
-              toast.error('Some seats were taken by others. Please reselect.');
-              await fetchSeats();
-              return false;
-          }
-          
-          syncedSeatsRef.current = [...syncedSeatsRef.current, ...toAdd];
-      }
-
-      return true;
-    } catch (err) {
-      toAdd.forEach(id => dispatch(toggleSeat({ id, label: '' })));
-      toast.error("Network error. Your selection has been reset.");
-      return false;
-    } finally {
-      isSyncingRef.current = false;
-      setIsSyncing(false);
-
-      if (needsAnotherFlushRef.current) {
-          needsAnotherFlushRef.current = false;
-          if (debounceTimer.current) clearTimeout(debounceTimer.current);
-          debounceTimer.current = setTimeout(flushNow, 800);
-      }
-    }
-  }, [selectedShowtime?.id, currentUserId, lockSeatsAction, releaseSeatsAction, dispatch, fetchSeats]);
-
-  const scheduleFlush = useCallback(() => {
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(flushNow, 800);
-  }, [flushNow]);
-
+  // 2. UPDATED REALTIME CHANNEL (No manual fetch, strictly typed)
   useEffect(() => {
     if (!selectedShowtime?.id) return
-
     let fallbackTimer: NodeJS.Timeout | null = null
 
-    const handleChange = () => {
-      if (fallbackTimer) clearTimeout(fallbackTimer)
-      fallbackTimer = setTimeout(() => fetchSeats(), 300)
-    }
+    const handleChange = (payload: RealtimeChangePayload) => {
+    if (isPushingDataRef.current) return;
+
+    const getUserId = (record?: RealtimePayloadRecord | null): string | null => {
+      return record && typeof record.user_id === 'string' ? record.user_id : null;
+    };
+
+    const newUserId = getUserId(payload.new);
+    const oldUserId = getUserId(payload.old);
+    const changedUserId = newUserId || oldUserId;
+
+    if (changedUserId && changedUserId === currentUserId) return;
+    
+    if (fallbackTimer) clearTimeout(fallbackTimer)
+    
+    fallbackTimer = setTimeout(() => {
+      dispatch(bookingApi.util.invalidateTags([{ type: 'Seats', id: selectedShowtime.id }]));
+    }, 800)
+  }
 
     const channel = supabase
       .channel(`seats-${selectedShowtime.id}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'seat_locked',
-        filter: `showtime_id=eq.${selectedShowtime.id}`,
-      }, handleChange)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'booking_seats',
-        filter: `showtime_id=eq.${selectedShowtime.id}`,
-      }, handleChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'seat_locked', filter: `showtime_id=eq.${selectedShowtime.id}` }, handleChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'booking_seats', filter: `showtime_id=eq.${selectedShowtime.id}` }, handleChange)
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
       if (fallbackTimer) clearTimeout(fallbackTimer)
     }
-  }, [selectedShowtime?.id, fetchSeats])
-
-  const showtimeRef = useRef(selectedShowtime)
-  const seatIdsRef = useRef(selectedSeatIds)
-  useEffect(() => { showtimeRef.current = selectedShowtime }, [selectedShowtime])
-  useEffect(() => { seatIdsRef.current = selectedSeatIds }, [selectedSeatIds])
-
-  useEffect(() => {
-    return () => {
-      if (!isProceedingRef.current && showtimeRef.current?.id && seatIdsRef.current.length > 0) {
-        releaseSeatsAction({
-          showtimeId: showtimeRef.current.id,
-          seatIds: seatIdsRef.current
-        })
-        sessionStorage.removeItem('tix_seats_backup');
-      }
-    }
-  }, [releaseSeatsAction])
+  }, [selectedShowtime?.id, currentUserId, dispatch])
 
   const handleShowtimeSwitch = useCallback(async (newShowtime: ShowtimeForBooking) => {
-    if (selectedShowtime?.id && selectedSeatIds.length > 0) {
-      await releaseSeatsAction({ showtimeId: selectedShowtime.id, seatIds: selectedSeatIds });
+    if (selectedShowtime?.id && lastSyncedRef.current.length > 0) {
+      await releaseSeatsAction({ showtimeId: selectedShowtime.id, seatIds: lastSyncedRef.current });
     }
     dispatch(setSelectedShowtime(newShowtime))
-  }, [dispatch, selectedShowtime, selectedSeatIds, releaseSeatsAction])
+    lastSyncedRef.current = [];
+    pendingDesiredRef.current = [];
+    pendingLabelsRef.current = [];
+  }, [dispatch, selectedShowtime, releaseSeatsAction])
 
+  const flushNow = useCallback(async (): Promise<boolean> => {
+    if (!selectedShowtime?.id || !currentUserId) return true;
+
+    const desired = pendingDesiredRef.current;
+    const synced = lastSyncedRef.current;
+    const { toAdd, toDelete } = computeDiff(synced, desired);
+
+    if (toAdd.length === 0 && toDelete.length === 0) return true;
+
+    isPushingDataRef.current = true;
+
+    setIsSyncing(true);
+    try {
+      const result = await syncSeatsAction({
+        showtimeId: selectedShowtime.id,
+        userId: currentUserId,
+        seatsToAdd: toAdd,
+        seatsToDel: toDelete
+      }).unwrap();
+
+      const confirmedSeats = result.held_seats || [];
+      lastSyncedRef.current = confirmedSeats;
+
+      return true;
+    } catch (err: unknown) {
+      const rtkError = err as { data?: { error?: string, seat_id?: string }; message?: string };
+
+      const rollbackIds = lastSyncedRef.current.slice(-10);
+      pendingDesiredRef.current = rollbackIds;
+
+      const rollbackLabels = pendingLabelsRef.current.slice(0, rollbackIds.length);
+      pendingLabelsRef.current = rollbackLabels;
+
+      dispatch(setSelectedSeats({ ids: rollbackIds, labels: rollbackLabels }));
+
+      if (rtkError?.data?.error === 'SEAT_CONFLICT') {
+        toast.dismiss();
+        toast.error(`Seat was just taken by someone else. Please choose another.`);
+      } else {
+        toast.dismiss();
+        toast.error("Network error. Your selection has been reset.");
+      }
+      return false;
+    } finally {
+      setTimeout(() => {
+      isPushingDataRef.current = false;
+    }, 800);
+    }
+  }, [selectedShowtime?.id, currentUserId, syncSeatsAction, dispatch]);
+
+  const scheduleFlush = useCallback(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(flushNow, 800);
+  }, [flushNow]);
 
   const handleSeatClick = useCallback((seat: SeatWithStatus) => {
     if (seat.is_booked) return
     if (seat.is_locked && seat.locked_by_user_id !== currentUserId) return
     if (!selectedShowtime?.id) return
     if (!currentUserId) {
-      router.push('/login')
+      router.push(loginHref);
       return
     }
 
     const label = getSeatLabel(seat)
-    const alreadySelected = selectedSeatIds.includes(seat.id)
 
-    let oldestSeatId: string | null = null;
-    let oldestSeatLabel: string | null = null;
+    const currentIds = pendingDesiredRef.current;
+    const currentLabels = pendingLabelsRef.current;
+    const isAlreadySelected = currentIds.includes(seat.id);
 
-    if (!alreadySelected && selectedSeatIds.length >= 10) {
-      toast.error("You can only select up to 10 seats per transaction.", {
-        style: { borderRadius: '10px', background: '#333', color: '#fff' },
-      })
-      oldestSeatId = selectedSeatIds[0];
-      oldestSeatLabel = selectedSeatLabels[0];
+    let nextIds: string[];
+    let nextLabels: string[];
+
+    if (isAlreadySelected) {
+      nextIds = currentIds.filter(id => id !== seat.id);
+      nextLabels = currentLabels.filter(l => l !== label);
+    } else if (currentIds.length >= 10) {
+      toast.dismiss();
+      toast.error("Max 10 seats. Oldest selection removed.");
+      nextIds = [...currentIds.slice(-(10 - 1)), seat.id];
+      nextLabels = [...currentLabels.slice(-(10 - 1)), label];
+    } else {
+      nextIds = [...currentIds, seat.id];
+      nextLabels = [...currentLabels, label];
     }
 
-    dispatch(toggleSeat({ id: seat.id, label }));
-    if (oldestSeatId && oldestSeatLabel) {
-      dispatch(toggleSeat({ id: oldestSeatId, label: oldestSeatLabel }));
-    }
+    pendingDesiredRef.current = nextIds;
+    pendingLabelsRef.current = nextLabels;
+    dispatch(setSelectedSeats({ ids: nextIds, labels: nextLabels }));
 
     scheduleFlush();
 
-  }, [dispatch, selectedShowtime, selectedSeatIds, selectedSeatLabels, currentUserId, router, scheduleFlush])
-
+  }, [dispatch, selectedShowtime?.id, currentUserId, router, loginHref, scheduleFlush])
 
   const handleConfirm = async () => {
     if (selectedSeatIds.length === 0) return
     if (!currentUserId) { router.push('/login'); return }
-    
+
     setConfirming(true)
 
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-
-    while (isSyncingRef.current) {
-        await new Promise(resolve => setTimeout(resolve, 100)); 
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current)
+      debounceTimer.current = null
+      const flushed = await flushNow()
+      if (!flushed) {
+        setConfirming(false);
+        return;
+      }
     }
 
-    const success = await flushNow();
-
-    if (!success) {
-      setConfirming(false);
-      return; 
-    }
-
-    isProceedingRef.current = true
     router.push(`/booking/${movieId}/seats/payment`)
   }
 
@@ -304,16 +307,15 @@ export default function SeatsPage() {
   }
 
   const handleBackConfirm = async () => {
-    if (selectedShowtime?.id && selectedSeatIds.length > 0) {
+    if (selectedShowtime?.id && lastSyncedRef.current.length > 0) {
       await releaseSeatsAction({
         showtimeId: selectedShowtime.id,
-        seatIds: selectedSeatIds
+        seatIds: lastSyncedRef.current
       });
     }
     sessionStorage.removeItem('tix_seats_backup');
-    syncedSeatsRef.current = [];
+    lastSyncedRef.current = [];
     setShowBackModal(false);
-    isProceedingRef.current = true;
     router.replace(`/booking/${movieId}`);
   }
 
@@ -343,7 +345,9 @@ export default function SeatsPage() {
               {isSyncing && <span className="text-xs text-shade-400 animate-pulse hidden sm:block">Saving...</span>}
             </div>
           </div>
-          {isLoading ? (
+          
+          {/* 3. DECOUPLED LOADING FROM BACKGROUND SYNCING */}
+          {isLoading && seats.length === 0 ? (
             <div className='w-full flex flex-col items-center gap-1 sm:gap-3'>
               {[...Array(8)].map((_, rowIndex) => (
                 <div key={rowIndex} className='flex justify-center'>
@@ -378,7 +382,6 @@ export default function SeatsPage() {
 
       {selectedSeatIds.length > 0 && (
         <div className='max-w-[80%] bg-white border-t border-shade-200 mx-auto py-6 md:py-10 flex flex-col md:flex-row justify-between gap-6 md:gap-4 z-50'>
-
           <div className='w-full md:w-auto flex flex-row justify-between md:justify-start gap-4 sm:gap-16'>
             <div className='flex flex-col'>
               <div className='text-shade-600 text-[14px] md:text-[18px] mb-1'>Total</div>
@@ -406,7 +409,7 @@ export default function SeatsPage() {
             </button>
             <button
               onClick={handleConfirm}
-              disabled={confirming} 
+              disabled={confirming}
               className='flex-1 md:flex-none md:w-40 lg:w-54 h-12 flex items-center justify-center bg-royal-blue text-sunshine-yellow font-medium text-base sm:text-xl rounded-[5px] hover:bg-royal-blue-hover active:bg-royal-blue-while-pressed transition-all disabled:opacity-50 uppercase tracking-wide cursor-pointer'
             >
               {confirming ? 'Wait...' : 'Confirm'}

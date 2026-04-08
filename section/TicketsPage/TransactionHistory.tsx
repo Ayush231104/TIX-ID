@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { GoLocation } from 'react-icons/go';
 import type { EnrichedBooking, TicketCategory } from './TicketsPage'; 
 import Typography from '@/components/ui/Typography';
@@ -8,7 +9,6 @@ import Typography from '@/components/ui/Typography';
 interface TransactionHistoryProps {
   bookings: EnrichedBooking[];
   category: TicketCategory;
-  onSelectTicket: (ticket: EnrichedBooking) => void;
 }
 
 const formatFullDate = (dateString: string): string => {
@@ -23,7 +23,7 @@ const formatTime = (dateString: string): string => {
   });
 };
 
-export default function TransactionHistory({ bookings, category, onSelectTicket }: TransactionHistoryProps) {
+export default function TransactionHistory({ bookings, category }: TransactionHistoryProps) {
   if (category !== 'Film') {
     return <div className="text-center text-shade-500 py-20">No {category} history found.</div>;
   }
@@ -64,14 +64,21 @@ export default function TransactionHistory({ bookings, category, onSelectTicket 
               </div>
 
               <div className="flex items-center justify-start sm:justify-end mt-4 sm:mt-0">
-                <button 
-                  onClick={() => onSelectTicket(booking)}
-                  disabled={!isSuccess}
-                  className={`px-8 py-2.5 rounded-lg text-white font-medium transition-opacity  
-                    ${isSuccess ? 'bg-[#008CF5] hover:opacity-90' : 'bg-[#FF5A5F]'}`}
-                >
-                  {isSuccess ? 'Success' : booking.booking_status === 'cancelled' ? 'Cancelled' : 'Failed'}
-                </button>
+                {isSuccess ? (
+                  <Link 
+                    href={`/tickets/${booking.id}`}
+                    className="px-8 py-2.5 rounded-lg text-white font-medium transition-opacity bg-[#008CF5] hover:opacity-90 flex items-center justify-center"
+                  >
+                    Success
+                  </Link>
+                ) : (
+                  <button 
+                    disabled
+                    className="px-8 py-2.5 rounded-lg text-white font-medium transition-opacity bg-[#FF5A5F] cursor-not-allowed"
+                  >
+                    {booking.booking_status === 'cancelled' ? 'Cancelled' : 'Failed'}
+                  </button>
+                )}
               </div>
             </div>
           </div>

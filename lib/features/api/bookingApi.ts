@@ -1,5 +1,5 @@
 import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
-import { getSeatsWithStatus, getShowtimes, lockSeats, releaseSeats } from '@/actions/bookingActions';
+import { getSeatsWithStatus, getShowtimes, lockSeats, releaseSeats, syncSeatsWithRPC } from '@/actions/bookingActions';
 import type { Movie, SeatWithStatus, ShowtimeForBooking } from '@/types/index';
 import { getMovie } from '@/actions/movieActions';
 
@@ -48,6 +48,23 @@ export const bookingApi = createApi({
             providesTags: (result, error, arg) => [{ type: 'Seats', id: arg.showtimeId }],
         }),
 
+        syncSeatsMutation: builder.mutation<{ success: boolean; held_seats: string[] }, { showtimeId: string; userId: string; seatsToAdd: string[]; seatsToDel: string[] }>({
+            queryFn: async ({ showtimeId, userId, seatsToAdd, seatsToDel }) => {
+                try {
+                    const result = await syncSeatsWithRPC(showtimeId, userId, seatsToAdd, seatsToDel);
+                    
+                    if (!result.success) {
+                        return { error: { message: result.error || 'Seat update failed', data: result } };
+                    }
+                    
+                    return { data: { success: true, held_seats: result.held_seats || [] } };
+                } catch (error) {
+                    if (error instanceof Error) return { error: { message: error.message } };
+                    return { error: { message: 'Unexpected error during seat sync' } };
+                }
+            }
+        }),
+
         lockSeatsMutation: builder.mutation<null, { showtimeId: string; seatIds: string[]; userId: string }>({
             queryFn: async ({ showtimeId, seatIds, userId }) => {
                 try {
@@ -81,5 +98,6 @@ export const {
     useGetMovieByIdQuery,
     useGetSeatsWithStatusQuery,
     useLockSeatsMutationMutation,
-    useReleaseSeatsMutationMutation
+    useReleaseSeatsMutationMutation,
+    useSyncSeatsMutationMutation
 } = bookingApi;

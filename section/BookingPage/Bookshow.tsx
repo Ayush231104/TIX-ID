@@ -43,10 +43,10 @@ export default function Bookshow({
         <p className='text-gray-600 text-[16px] font-normal'>Select the cinema schedule you want to watch</p>
       </div>
 
-      <div>
+      <div className='flex justify-center'>
         <DateSelector onDateSelect={handleDateSelect} />
-        <hr className="mt-5.5 text-[#C4C4C4]" />
       </div>
+      <hr className="mt-5.5 text-[#C4C4C4]" />
 
       <div>
         <LocationFilter

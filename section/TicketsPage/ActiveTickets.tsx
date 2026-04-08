@@ -1,13 +1,14 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link'; // 🚀 Added Link
 import { GoLocation } from 'react-icons/go';
 import type { EnrichedBooking, TicketCategory } from './TicketsPage';
 
 interface ActiveTicketsProps {
   bookings: EnrichedBooking[];
   category: TicketCategory;
-  onSelectTicket: (ticket: EnrichedBooking) => void;
+  // 🚀 DELETED: onSelectTicket prop
 }
 
 const formatFullDate = (dateString: string): string => {
@@ -17,17 +18,14 @@ const formatFullDate = (dateString: string): string => {
 };
 
 const parseDurationToMinutes = (durationString?: string | null): number => {
-  if (!durationString) return 150; // Fallback to 150 minutes
-
+  if (!durationString) return 150; 
   const timeOnly = durationString.split('+')[0].split('-')[0]; 
   const parts = timeOnly.split(':');
-
   if (parts.length >= 2) {
     const hours = parseInt(parts[0], 10) || 0;
     const minutes = parseInt(parts[1], 10) || 0;
     return (hours * 60) + minutes;
   }
-  
   return 150;
 };
 
@@ -37,7 +35,7 @@ const formatTime = (dateString: string): string => {
   });
 };
 
-export default function ActiveTickets({ bookings, category, onSelectTicket }: ActiveTicketsProps) {
+export default function ActiveTickets({ bookings, category }: ActiveTicketsProps) {
   if (category !== 'Film') {
     return <div className="text-center text-shade-500 py-20">No active {category} tickets found.</div>;
   }
@@ -48,7 +46,6 @@ export default function ActiveTickets({ bookings, category, onSelectTicket }: Ac
       if (!showtime?.show_time) return false;
 
       const startTime = new Date(showtime.show_time);
-      // 🚀 USE PARSER HERE
       const durationInMinutes = parseDurationToMinutes(showtime.movies.duration as unknown as string);
       const endTime = new Date(startTime.getTime() + durationInMinutes * 60000);
 
@@ -65,10 +62,11 @@ export default function ActiveTickets({ bookings, category, onSelectTicket }: Ac
         const showtime = booking.showtimes;
         
         return (
-          <div 
+          // 🚀 CHANGED: Using Link to navigate to the dynamic URL
+          <Link 
             key={booking.id} 
-            onClick={() => onSelectTicket(booking)}
-            className="border-b border-shade-200 pb-6 cursor-pointer hover:bg-shade-50 transition-colors rounded-lg p-2 -mx-2"
+            href={`/tickets/${booking.id}`}
+            className="block border-b border-shade-200 pb-6 cursor-pointer hover:bg-shade-50 transition-colors rounded-lg p-2 -mx-2"
           >
             <div className="flex flex-col sm:flex-row items-center gap-6">
               <div className="w-32 h-44 shrink-0 relative rounded-lg overflow-hidden bg-shade-100">
@@ -92,9 +90,8 @@ export default function ActiveTickets({ bookings, category, onSelectTicket }: Ac
                   <span className="font-semibold text-shade-900 ml-1">({showtime.screen.type})</span>
                 </div>
               </div>
-              
             </div>
-          </div>
+          </Link>
         );
       })}
     </div>

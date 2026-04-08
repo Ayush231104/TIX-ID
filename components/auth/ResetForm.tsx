@@ -13,9 +13,11 @@ export default function ResetForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [statusMessage, setStatusMessage] = useState<{ type: 'error' | 'success', text: string } | null>(null);
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false); // Added state for confirm password
 
     const router = useRouter();
-    const { register, handleSubmit, formState: { errors } } = useForm();
+    // Added 'watch' to compare the two password fields
+    const { register, handleSubmit, watch, formState: { errors } } = useForm();
 
     const onSubmit = async (data: FieldValues) => {
         setIsLoading(true);
@@ -38,7 +40,7 @@ export default function ResetForm() {
 
     return (
         <div className="px-8 py-10 md:px-25 md:py-20">
-            <Typography variant="h2" color='shade-900' className='mb-3 md:mb-6'>
+            <Typography variant="h2" color='shade-900' className='mb-3 md:mb-12'>
                 Set New Password
             </Typography>
 
@@ -72,6 +74,35 @@ export default function ResetForm() {
                     {errors.password && <span className="text-red-500 text-[11px] mt-2">{errors.password.message as string}</span>}
                 </div>
 
+                <div className="flex flex-col relative">
+                    <Typography variant='body-large' className={`tracking-wide uppercase mb-2 ${errors.confirmPassword ? 'text-red-500' : 'text-shade-900'}`}>
+                        Confirm Password
+                    </Typography>
+                    <div className="relative w-full">
+                        <input
+                            type={showConfirmPassword ? "text" : "password"}
+                            placeholder="Confirm your new password"
+                            {...register("confirmPassword", {
+                                required: "Please confirm your password",
+                                validate: (val: string) => {
+                                    if (watch('password') !== val) {
+                                        return "Your passwords do not match";
+                                    }
+                                }
+                            })}
+                            className={`w-full border-b pb-2 text-[14px] md:text-[20px] font-normal pr-10 focus:outline-none transition-colors bg-transparent ${errors.confirmPassword ? 'border-red-500 text-red-500 placeholder-red-300' : 'border-shade-400 text-gray-900 placeholder-shade-400 focus:border-gray-800'}`}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className={`absolute right-0 top-0 bottom-2 transition-colors ${errors.confirmPassword ? 'text-red-400' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                            {showConfirmPassword ? <FiEye size={18} /> : <FiEyeOff size={18} />}
+                        </button>
+                    </div>
+                    {errors.confirmPassword && <span className="text-red-500 text-[11px] mt-2">{errors.confirmPassword.message as string}</span>}
+                </div>
+
                 {statusMessage && (
                     <div className={`text-sm p-3 rounded mt-2 ${statusMessage.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
                         {statusMessage.text}
@@ -82,7 +113,7 @@ export default function ResetForm() {
                     <button
                         type="submit"
                         disabled={isLoading || statusMessage?.type === 'success'}
-                        className="w-full bg-royal-blue-default hover:bg-royal-blue-hover text-white py-4 rounded-md font-medium text-[15px] disabled:bg-[#E2E8F0] disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                        className="w-full bg-royal-blue-default hover:bg-royal-blue-hover text-white py-4 rounded-md font-medium text-[15px] disabled:bg-[#E2E8F0] disabled:text-gray-400 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     >
                         {isLoading ? 'Updating...' : 'Update Password'}
                     </button>

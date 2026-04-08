@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, FreeMode } from 'swiper/modules'
 import 'swiper/css'
@@ -29,16 +29,19 @@ export default function DateSelector({
   onDateSelect: (date: Date) => void
 }) {
   const [selectedIndex, setSelectedIndex] = useState(0)
-  const dates = generateDates()
+
+  const dates = useMemo(() => generateDates(), [])
 
   const handleSelect = (date: Date, index: number) => {
     if (index >= 5) return 
+    if (selectedIndex === index) return 
+    
     setSelectedIndex(index)
     onDateSelect(date)
   }
 
   return (
-    <div className='w-full max-w-145 overflow-hidden mt-4 sm:mt-6 relative px-8'>
+    <div className='w-full max-w-148 overflow-hidden mt-4 sm:mt-6 relative px-8'>
       <Swiper
         modules={[Navigation, FreeMode]}
         navigation={{
@@ -54,7 +57,7 @@ export default function DateSelector({
         <button
           className='swiper-prev absolute left-0 top-1/2 -translate-y-1/2 z-10
             w-7 h-7 flex items-center justify-center
-            rounded-lg bg-white
+            rounded-lg bg-white disabled:bg-shade-200 disabled:border-shade-200 disabled:text-shade-600 disabled:cursor-not-allowed
             hover:bg-shade-200 transition-all cursor-pointer'
         >
           <FaChevronLeft size={20} />
@@ -70,7 +73,7 @@ export default function DateSelector({
                 onClick={() => handleSelect(date, index)}
                 disabled={isDisabled}
                 className={`
-                  w-18 sm:w-21.5 h-18 sm:h-20.5 flex flex-col items-center justify-center
+                  w-18 sm:w-22 h-18 sm:h-20.5 flex flex-col items-center justify-center
                   py-3 px-2 rounded-xl transition-all border
                   ${isSelected
                     ? 'bg-royal-blue border-royal-blue text-white'
@@ -95,8 +98,8 @@ export default function DateSelector({
         <button
           className='swiper-next absolute right-0 top-1/2 -translate-y-1/2 z-10
             w-7 h-7 flex items-center justify-center
-            rounded-lg bg-white
-            hover:bg-shade-200 transition-all cursor-pointer'
+            rounded-lg bg-white disabled:bg-shade-200 disabled:border-shade-200 disabled:text-shade-600 disabled:cursor-not-allowed
+            hover:bg-shade-200 transition-all cursor-pointer '
         >
           <FaChevronRight size={20}/>
         </button>

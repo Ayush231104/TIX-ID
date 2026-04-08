@@ -67,6 +67,11 @@ const bookingSlice = createSlice({
       }
       recalculate(state)
     },
+    setSelectedSeats: (state, action: PayloadAction<{ ids: string[]; labels: string[] }>) => {
+      state.selectedSeatIds = action.payload.ids
+      state.selectedSeatLabels = action.payload.labels
+      recalculate(state)
+    },
     setDiscount: (state, action: PayloadAction<{ id: string; amount: number; code: string }>) => {
       state.discountId = action.payload.id
       state.discountAmount = action.payload.amount
@@ -88,6 +93,7 @@ export const {
   setSelectedDate,
   setSelectedShowtime,
   toggleSeat,
+  setSelectedSeats,
   setDiscount,
   clearDiscount,
   resetBooking,

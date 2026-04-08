@@ -33,7 +33,7 @@ export default function ForgotForm() {
 
     return (
         <div className="px-8 py-10 md:px-25 md:py-20">
-            <Typography variant="h2" color='shade-900' className='mb-3 md:mb-6'>Forgot Password</Typography>
+            <Typography variant="h2" color='shade-900' className='mb-3 md:mb-12'>Forgot Password</Typography>
 
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-8">
                 <div className="flex flex-col">
@@ -50,7 +50,7 @@ export default function ForgotForm() {
                 </div>
 
                 {statusMessage && (
-                    <div className={`text-sm p-3 rounded mt-2 ${statusMessage.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+                    <div className={`text-sm p-3 rounded ${statusMessage.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
                         {statusMessage.text}
                     </div>
                 )}

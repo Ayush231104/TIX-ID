@@ -1,4 +1,3 @@
-import React from 'react'
 import SeatsPage from '@/section/SeatsPage/SeatsPage'
 
 export default function Seats() {

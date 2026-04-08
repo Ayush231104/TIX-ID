@@ -25,7 +25,6 @@ export default function PaymentSuccessPage() {
         isMissingParams ? 'Missing payment information in the URL.' : ''
     );
     
-    // This prevents React Strict Mode from running the verification twice in development
     const hasVerified = useRef(false); 
 
     useEffect(() => {
@@ -93,7 +92,7 @@ export default function PaymentSuccessPage() {
                         Transaction details have been sent to your email, you can also check the ticket details in my tickets on the website or your smartphone.
                     </p>
                     <Link
-                        href={`/tickets?ticketId=${bookingId}`} 
+                        href={`/tickets/${bookingId}`} 
                         className='px-10 py-3 border-2 border-shade-300 text-shade-900 font-bold rounded-lg hover:bg-shade-100 transition-all cursor-pointer'
                     >
                         Check Transaction Details
