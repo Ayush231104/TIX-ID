@@ -254,7 +254,22 @@ export default function PaymentPage() {
         }
     }
     if (!selectedMovie || !selectedShowtime || selectedSeatIds.length === 0) {
-        router.replace('/');
+        return (
+            <div className="min-h-[70vh] flex flex-col items-center justify-center px-6 text-center">
+                <Typography variant="h2" color="shade-900" className="mb-4">
+                    Session Expired or Completed
+                </Typography>
+                <Typography color="shade-600" className="mb-8 max-w-md">
+                    It looks like this booking session has ended, or you have already completed your payment. 
+                </Typography>
+                <button
+                    onClick={() => router.replace('/')}
+                    className="px-8 py-3 bg-royal-blue text-white font-medium rounded-lg hover:bg-royal-blue-hover transition-colors"
+                >
+                    Return to Home
+                </button>
+            </div>
+        );
     }
 
     return (

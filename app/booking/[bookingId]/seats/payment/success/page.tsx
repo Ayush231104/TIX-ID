@@ -1,13 +1,14 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { verifyAndSavePayment } from '@/actions/paymentVerification';
 import { useAppDispatch } from '@/lib/hooks';
 import { resetBooking } from '@/lib/features/slice/bookingSlice';
 import Link from 'next/link';
 
-export default function PaymentSuccessPage() {
+// 1. Rename the main function to PaymentSuccessContent
+function PaymentSuccessContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const dispatch = useAppDispatch();
@@ -51,7 +52,7 @@ export default function PaymentSuccessPage() {
         };
 
         verifyPayment();
-    }, [sessionId, bookingId, dispatch, isMissingParams]); // Added isMissingParams to deps
+    }, [sessionId, bookingId, dispatch, isMissingParams]);
 
     // --- UI STATES ---
 
@@ -101,4 +102,18 @@ export default function PaymentSuccessPage() {
             )}
         </div>
     );
+}
+
+// 2. Export a default component that wraps the content in Suspense
+export default function PaymentSuccessPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-[60vh] flex flex-col items-center justify-center">
+                <div className="w-12 h-12 border-4 border-royal-blue border-t-transparent rounded-full animate-spin mb-4"></div>
+                <h2 className="text-2xl font-bold text-shade-900">Loading payment details...</h2>
+            </div>
+        }>
+            <PaymentSuccessContent />
+        </Suspense>
+    )
 }
