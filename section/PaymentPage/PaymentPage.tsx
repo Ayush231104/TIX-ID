@@ -176,6 +176,15 @@ export default function PaymentPage() {
                 return
             }
 
+            if (discountCode) {
+                const validationCheck = await validateDiscount(discountCode, totalPrice);
+                if (!validationCheck.success) {
+                    setBuyError(`Checkout failed: ${validationCheck.error}. Please remove the discount to proceed.`);
+                    setBuying(false);
+                    return;
+                }
+            }
+
             let currentBookingId = sessionStorage.getItem('tix_pending_booking_id');
             const savedCartRaw = sessionStorage.getItem('tix_cart');
 
@@ -187,7 +196,10 @@ export default function PaymentPage() {
                 const isSameShowtime = savedCart.showtime?.id === selectedShowtime!.id;
                 const isSameSeats = savedCart.seats?.join(',') === selectedSeatIds.join(',');
 
-                if (isSameShowtime && isSameSeats) {
+                const isSameDiscount = savedCart.discountId === (discountId || null);
+                const isSameAmount = savedCart.totalAmount === totalAmount;
+
+                if (isSameShowtime && isSameSeats && isSameDiscount && isSameAmount) {
                     needsNewBooking = false;
                 }
             }
@@ -200,7 +212,7 @@ export default function PaymentPage() {
                         user_id: user.id,
                         total_amount: totalAmount,
                         total_seats: selectedSeatIds.length,
-                        discount_id: discountId || undefined,
+                        discount_id: discountId || null,
                     },
                     selectedSeatIds,
                     selectedShowtime!.id
@@ -223,8 +235,13 @@ export default function PaymentPage() {
                 sessionStorage.setItem('tix_pending_booking_id', currentBookingId as string);
                 sessionStorage.setItem('tix_cart', JSON.stringify({
                     movie: selectedMovie, showtime: selectedShowtime,
-                    seats: selectedSeatIds, labels: selectedSeatLabels
+                    seats: selectedSeatIds, labels: selectedSeatLabels,
+                    discountId: discountId || null,
+                    totalAmount: totalAmount
                 }));
+            } else {
+                console.log("Reusing booking, clearing residual UI locks...");
+                await releaseSeats(selectedShowtime!.id, selectedSeatIds);
             }
 
             const stripeResult = await createStripeCheckoutSession({
@@ -260,7 +277,7 @@ export default function PaymentPage() {
                     Session Expired or Completed
                 </Typography>
                 <Typography color="shade-600" className="mb-8 max-w-md">
-                    It looks like this booking session has ended, or you have already completed your payment. 
+                    It looks like this booking session has ended, or you have already completed your payment.
                 </Typography>
                 <button
                     onClick={() => router.replace('/')}

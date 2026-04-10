@@ -39,7 +39,7 @@ const getSeatLabel = (row: number, col: number): string => {
 export default function TransactionDetail({ ticket }: TransactionDetailProps) {
   const [passwordKey] = useState(() => Math.floor(100000 + Math.random() * 900000));
   const isClient = typeof window !== 'undefined';
-  const router = useRouter(); // 🚀 Initialize router
+  const router = useRouter();
 
   if (!ticket || !ticket.showtimes) {
     return (
@@ -54,6 +54,7 @@ export default function TransactionDetail({ ticket }: TransactionDetailProps) {
   const movie = showtime.movies;
   const theater = showtime.theater;
   const screen = showtime.screen;
+  const discountCode = ticket.discount?.code ?? '';
   
   const seats = (ticket.booking_seats || [])
     .map((bs) => {
@@ -129,7 +130,15 @@ export default function TransactionDetail({ ticket }: TransactionDetailProps) {
             <div className="flex justify-center max-w-15 shrink-0 border border-royal-blue-default rounded-lg transition mt-1 sm:mt-0 cursor-pointer hover:bg-black/5">
               {isClient ? (
                 <PDFDownloadLink
-                  document={<TicketPDF ticket={ticket} passwordKey={passwordKey} seats={seats} />}
+                  document={
+                    <TicketPDF
+                      ticket={ticket}
+                      passwordKey={passwordKey}
+                      seats={seats}
+                      discountAmount={discountAmount}
+                      discountCode={discountCode}
+                    />
+                  }
                   fileName={`TIX-ID-Ticket-${ticket.id?.split('-')[0].toUpperCase() || 'CODE'}.pdf`}
                   className="p-2 sm:p-3 flex items-center justify-center w-full h-full"
                 >
@@ -172,7 +181,7 @@ export default function TransactionDetail({ ticket }: TransactionDetailProps) {
           
           {discountAmount > 0 && (
             <div className="flex justify-between text-green-600">
-              <span className="uppercase">Discount</span>
+              <span className="uppercase">Discount({discountCode})</span>
               <span>- ₹{discountAmount.toLocaleString('en-IN')}</span>
             </div>
           )}

@@ -31,9 +31,11 @@ interface TicketPDFProps {
   ticket: EnrichedBooking;
   passwordKey: number;
   seats: string;
+  discountAmount: number;
+  discountCode: string;
 }
 
-export default function TicketPDF({ ticket, passwordKey, seats }: TicketPDFProps) {
+export default function TicketPDF({ ticket, passwordKey, seats, discountAmount, discountCode }: TicketPDFProps) {
   const showtime = ticket.showtimes;
   
   const date = new Date(showtime.show_time).toLocaleDateString('en-GB', {
@@ -46,8 +48,7 @@ export default function TicketPDF({ ticket, passwordKey, seats }: TicketPDFProps
   const seatCount = ticket.booking_seats.length;
   const seatPrice = showtime.price || 0;
   const serviceFee = 30;
-  const discount = ticket.discount_id ? 50 : 0;
-
+  
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -92,7 +93,6 @@ export default function TicketPDF({ ticket, passwordKey, seats }: TicketPDFProps
           </View>
         </View>
 
-        {/* === 🚀 NEW: PURCHASE DETAILS SECTION === */}
         <View style={styles.purchaseSection}>
           <Text style={styles.sectionTitle}>Purchase Details</Text>
           
@@ -110,11 +110,11 @@ export default function TicketPDF({ ticket, passwordKey, seats }: TicketPDFProps
             </Text>
           </View>
 
-          {discount > 0 && (
+          {discountAmount > 0 && (
             <View style={styles.purchaseRow}>
-              <Text style={styles.purchaseLabel}>PROMO TIX ID</Text>
+              <Text style={styles.purchaseLabel}>PROMO ({discountCode})</Text>
               <Text style={[styles.purchaseValue, styles.discountText]}>
-                - Rs. {discount.toLocaleString('en-IN')}
+                - Rs. {discountAmount.toLocaleString('en-IN')}
               </Text>
             </View>
           )}

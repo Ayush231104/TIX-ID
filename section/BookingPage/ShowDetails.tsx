@@ -45,7 +45,7 @@ export default function ShowDetails({ movie, selectedShowtime }: Props) {
   const params = useParams();
   const movieId = params.bookingId as string
   return (
-    <div className=' mt-27.75 px-8 lg:pl-32'>
+    <div className=' mt-27.75 px-8 lg:pl-30'>
       <div>
         <div className='max-w-110 h-140 relative mb-12'>
           <Image
@@ -57,7 +57,7 @@ export default function ShowDetails({ movie, selectedShowtime }: Props) {
             loading='lazy'
           />
         </div>
-        <div>
+        <div className='max-w-105'>
           <div className='my-5 font-medium text-[24px] leading-8 text-shade-900'>{movie.name ?? '-'}</div>
           <div className='flex gap-10'>
             <div className='flex flex-col gap-2.75'>

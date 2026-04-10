@@ -7,13 +7,11 @@ import { useAppDispatch } from '@/lib/hooks';
 import { resetBooking } from '@/lib/features/slice/bookingSlice';
 import Link from 'next/link';
 
-// 1. Rename the main function to PaymentSuccessContent
 function PaymentSuccessContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const dispatch = useAppDispatch();
 
-    // Grab the IDs from the Stripe redirect URL
     const sessionId = searchParams.get('session_id');
     const bookingId = searchParams.get('bookingId');
 
@@ -40,6 +38,7 @@ function PaymentSuccessContent() {
                     setStatus('success');
                     dispatch(resetBooking());
                     sessionStorage.removeItem('tix_cart');
+                    sessionStorage.removeItem('tix_pending_booking_id');
                 } else {
                     setStatus('error');
                     setErrorMessage(result.error || 'Payment verification failed.');
@@ -54,7 +53,6 @@ function PaymentSuccessContent() {
         verifyPayment();
     }, [sessionId, bookingId, dispatch, isMissingParams]);
 
-    // --- UI STATES ---
 
     if (status === 'loading') {
         return (
@@ -104,7 +102,6 @@ function PaymentSuccessContent() {
     );
 }
 
-// 2. Export a default component that wraps the content in Suspense
 export default function PaymentSuccessPage() {
     return (
         <Suspense fallback={

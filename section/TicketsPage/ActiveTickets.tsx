@@ -1,32 +1,20 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link'; // 🚀 Added Link
+import Link from 'next/link'; 
 import { GoLocation } from 'react-icons/go';
 import type { EnrichedBooking, TicketCategory } from './TicketsPage';
 
 interface ActiveTicketsProps {
-  bookings: EnrichedBooking[];
+  // We expect this array to ALREADY be filtered by the parent
+  bookings: EnrichedBooking[]; 
   category: TicketCategory;
-  // 🚀 DELETED: onSelectTicket prop
 }
 
 const formatFullDate = (dateString: string): string => {
   return new Date(dateString).toLocaleDateString('en-GB', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
-};
-
-const parseDurationToMinutes = (durationString?: string | null): number => {
-  if (!durationString) return 150; 
-  const timeOnly = durationString.split('+')[0].split('-')[0]; 
-  const parts = timeOnly.split(':');
-  if (parts.length >= 2) {
-    const hours = parseInt(parts[0], 10) || 0;
-    const minutes = parseInt(parts[1], 10) || 0;
-    return (hours * 60) + minutes;
-  }
-  return 150;
 };
 
 const formatTime = (dateString: string): string => {
@@ -40,29 +28,17 @@ export default function ActiveTickets({ bookings, category }: ActiveTicketsProps
     return <div className="text-center text-shade-500 py-20">No active {category} tickets found.</div>;
   }
 
-  const now = new Date();
-  const activeBookings = bookings.filter((booking) => {
-      const showtime = booking.showtimes;
-      if (!showtime?.show_time) return false;
-
-      const startTime = new Date(showtime.show_time);
-      const durationInMinutes = parseDurationToMinutes(showtime.movies.duration as unknown as string);
-      const endTime = new Date(startTime.getTime() + durationInMinutes * 60000);
-
-      return now < endTime; 
-  });
-
-  if (activeBookings.length === 0) {
+  // If the parent component gave us an empty array, it means no active tickets exist
+  if (bookings.length === 0) {
     return <div className="text-center text-shade-500 py-20">No active tickets found.</div>;
   }
 
   return (
     <div className="space-y-6 max-w-4xl">
-      {activeBookings.map((booking) => {
+      {bookings.map((booking) => {
         const showtime = booking.showtimes;
         
         return (
-          // 🚀 CHANGED: Using Link to navigate to the dynamic URL
           <Link 
             key={booking.id} 
             href={`/tickets/${booking.id}`}

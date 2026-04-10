@@ -2,38 +2,41 @@
 
 import Stripe from 'stripe';
 import { createClient } from '@/utils/supabase/server';
+import { revalidatePath } from 'next/cache';
 
-// Initialize Stripe (ensure API version matches your needs if required)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {});
 
 export async function verifyAndSavePayment(sessionId: string, bookingId: string) {
   try {
     const supabase = await createClient();
-    
-    // 1. Verify user is logged in
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'Unauthorized' };
 
-    // 2. Retrieve the session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    
+
     if (session.payment_status !== 'paid') {
       return { success: false, error: 'Payment was not completed.' };
     }
 
-    // 3. Check the current status of the payment to prevent double-processing
     const { data: existingPayment } = await supabase
       .from('payments')
       .select('payment_status')
       .eq('booking_id', bookingId)
       .single();
 
-    // If it's already succeeded, we don't need to do anything else
     if (existingPayment?.payment_status === 'succeeded') {
       return { success: true, message: 'Payment already processed.' };
     }
+    
+    const { data: bookingData, error: fetchError } = await supabase
+      .from('bookings')
+      .select('discount_id')
+      .eq('id', bookingId)
+      .single();
 
-    // 4. UPDATE the existing pending payment to 'succeeded'
+    if (fetchError) throw new Error(`Booking Fetch Error: ${fetchError.message}`);
+
     const { error: paymentError } = await supabase
       .from('payments')
       .update({
@@ -45,7 +48,6 @@ export async function verifyAndSavePayment(sessionId: string, bookingId: string)
 
     if (paymentError) throw new Error(`Payment Update Error: ${paymentError.message}`);
 
-    // 5. Update bookings to 'paid'
     const { error: bookingError } = await supabase
       .from('bookings')
       .update({ booking_status: 'paid' })
@@ -53,13 +55,24 @@ export async function verifyAndSavePayment(sessionId: string, bookingId: string)
 
     if (bookingError) throw new Error(`Booking Update Error: ${bookingError.message}`);
 
-    // 6. Update seats to 'confirmed'
     const { error: seatsError } = await supabase
       .from('booking_seats')
       .update({ booking_seat_status: 'confirmed' })
       .eq('booking_id', bookingId);
 
     if (seatsError) throw new Error(`Seats Update Error: ${seatsError.message}`);
+
+    if (bookingData.discount_id) {
+      const { error: rpcError } = await supabase.rpc('increment_discount_usage', {
+        d_id: bookingData.discount_id
+      });
+      if (rpcError) {
+        console.error("Failed to increment discount count:", rpcError);
+      }
+    }
+
+    revalidatePath('/tickets');
+    revalidatePath(`/tickets/${bookingId}`);
 
     return { success: true };
 
@@ -73,7 +86,7 @@ export async function verifyAndSavePayment(sessionId: string, bookingId: string)
 export async function cancelPaymentAndBooking(bookingId: string) {
   try {
     const supabase = await createClient();
-    
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'Unauthorized' };
 
@@ -91,7 +104,7 @@ export async function cancelPaymentAndBooking(bookingId: string) {
       .from('bookings')
       .update({ booking_status: 'cancelled' })
       .eq('id', bookingId);
-      
+
     if (bookingError) throw new Error(bookingError.message);
 
     // 3. Mark seats as cancelled (This frees them up in your UI)
