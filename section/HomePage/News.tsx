@@ -63,7 +63,7 @@ const News = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-4 sm:mt-12">
           {news.map((item) => (
-            <div key={item.id} className="w-full">
+            <Link href={`news/${item.id}`} key={item.id} className="w-full">
               <div className='max-w-105 h-60 relative'>
                 <Image src={item.img} alt={item.title} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" fill className='object-cover rounded-xl' priority ></Image>
               </div>
@@ -76,7 +76,7 @@ const News = () => {
                 month: 'short',
                 year: 'numeric'
               })} | TIX ID</Typography>
-            </div>
+            </Link>
           ))}
         </div>
       )}

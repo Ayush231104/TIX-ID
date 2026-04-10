@@ -1,5 +1,5 @@
-import NewsFilter from "@/section/News/NewsFilter";
-import NewsCards from "@/section/News/NewsCards";
+import NewsFilter from "@/components/ui/News/NewsFilter";
+import NewsCards from "@/components/ui/News/NewsCards";
 
 
 export default function NewsPage() {

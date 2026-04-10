@@ -57,7 +57,7 @@ export default function Navbar() {
   const userName = user?.user_metadata?.full_name?.charAt(0).toUpperCase() || "U";
 
   return (
-    <div className="sticky top-0 z-50 w-full bg-white py-3">
+    <div className="sticky top-0 z-999 w-full bg-white py-3">
       <div className="flex items-center justify-between px-8 md:px-16 py-2">
         <Link href="/">
           <div className="flex items-center">

@@ -77,7 +77,7 @@ export default function TicketsPage({ initialBookings }: TicketsPageProps) {
 
       <div className="w-full md:w-[320px] shrink-0 bg-[#F5F6F8] border-b md:border-b-0 md:border-r border-shade-200">
         
-        <div className="flex flex-row md:flex-col md:sticky md:top-[80px] md:py-4 z-10">
+        <div className="flex flex-col md:sticky md:top-20 md:py-4 z-10">
           
           <button
             onClick={() => setActiveTab('active')}

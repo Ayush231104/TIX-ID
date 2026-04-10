@@ -68,7 +68,7 @@ export default function ResetForm() {
                             onClick={() => setShowPassword(!showPassword)}
                             className={`absolute right-0 top-0 bottom-2 transition-colors ${errors.password ? 'text-red-400' : 'text-gray-400 hover:text-gray-600'}`}
                         >
-                            {showPassword ? <FiEye size={18} /> : <FiEyeOff size={18} />}
+                            {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
                         </button>
                     </div>
                     {errors.password && <span className="text-red-500 text-[11px] mt-2">{errors.password.message as string}</span>}

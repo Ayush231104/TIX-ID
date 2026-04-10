@@ -152,30 +152,27 @@ export default function ArticlePage() {
         </div>
 
 
-        <div className="flex justify-start overflow-x-auto gap-5 mt-12 pb-8 no-scrollbar">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
           {relatedNews.map((item) => (
-            <Link
-              href={`${item.id}`}
-              key={item.id}
-              className=" w-[85vw] md:w-90 lg:w-104 "
-            >
-              <div className="w-full flex flex-col h-full">
-                <div className='w-[85vw] md:w-90 lg:w-104 h-60 relative'>
+            <Link href={`${item.id}`} key={item.id}>
+              <div className="w-full">
+                <div className='w-full h-60 relative'>
                   <Image
                     src={item.img}
                     alt={item.title}
-                    sizes="(max-width: 768px) 85vw, 350px"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     fill
                     className='object-cover rounded-xl'
+                    priority
                   />
                 </div>
-                <button className='w-fit border border-shade-300 rounded-md px-3 py-2 mt-4 sm:mt-6'>
-                  <Typography variant='body-small' color='shade-900'>{item.category}</Typography>
+                <button className='border px-3 py-2 text-xs font-normal mt-10'>
+                  {item.category}
                 </button>
-                <Typography variant='h3' color='shade-900' className="my-3 line-clamp-2">
+                <h2 className="text-2xl font-medium leading-8 my-4.5 text-shade-900">
                   {item.title}
-                </Typography>
-                <p className="text-[16px] font-normal leading-6 text-shade-600 mt-auto">
+                </h2>
+                <p className="text-[16px] font-normal leading-6 text-shade-600">
                   {new Date(item.release_date).toLocaleDateString('en-GB', {
                     day: '2-digit',
                     month: 'short',

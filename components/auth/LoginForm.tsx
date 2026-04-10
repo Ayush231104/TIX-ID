@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import toast from "react-hot-toast";
 import Typography from "../ui/Typography";
-import ConfirmModal from "@/components/ui/ConfirmModal"; // Renamed from ConfirmationModel to match your project
+import ConfirmModal from "@/components/ui/ConfirmModal"; 
 
 const supabase = createClient();
 
@@ -16,17 +16,17 @@ export default function LoginForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [authError, setAuthError] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
-    
-    // States for the Modal (following reference code)
+
+    // States for the Modal
     const [showModal, setShowModal] = useState(false);
     const [modalData, setModalData] = useState({ title: "", message: "" });
     const [callbackUrl, setCallbackUrl] = useState("/");
 
     const router = useRouter();
-    const { register, handleSubmit, formState: { errors } } = useForm();
+    
+    // 1. Properly destructure 'watch' from useForm
+    const { register, handleSubmit, watch, formState: { errors } } = useForm();
 
-    // Fix for useSearchParams build error: 
-    // We get the 'next' or 'redirect' param inside useEffect to avoid CSR bailout
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const next = params.get("next") || params.get("redirect") || "/";
@@ -44,9 +44,7 @@ export default function LoginForm() {
             });
 
             if (error) {
-                // Handling unverified email specifically like reference code
                 if (error.message?.includes("Email not confirmed")) {
-                    // Logic to resend verification (optional, based on your Supabase config)
                     await supabase.auth.resend({
                         type: 'signup',
                         email: data.email,
@@ -73,7 +71,19 @@ export default function LoginForm() {
         }
     };
 
-    const hasError = !!errors.email || !!errors.password || !!authError;
+    // 2. Watch inputs and clear server error when typing
+    const emailValue = watch("email");
+    const passwordValue = watch("password");
+
+    useEffect(() => {
+        if (authError) {
+            setAuthError(null);
+        }
+    }, [emailValue, passwordValue]);
+
+    // 3. Clean logic for UI state
+    const isRed = !!errors.email || !!errors.password || !!authError;
+    const isDisabled = !!errors.email || !!errors.password || isLoading;
 
     return (
         <div className="p-10 sm:px-20 sm:pt-15 md:px-25 md:pt-20">
@@ -84,20 +94,21 @@ export default function LoginForm() {
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-10 max-w-105.75">
                 {/* Email Field */}
                 <div className="flex flex-col">
-                    <Typography variant="body-large" className={`tracking-wide uppercase mb-2 ${hasError ? 'text-red-500' : 'text-shade-900'}`}>
+                    {/* Replaced hasError with isRed */}
+                    <Typography variant="body-large" className={`tracking-wide uppercase mb-2 ${isRed ? 'text-red-500' : 'text-shade-900'}`}>
                         Email
                     </Typography>
                     <input
                         type="email"
                         placeholder="Enter your email"
                         {...register("email", { required: "Email is required" })}
-                        className={`w-full border-b pb-2 text-[14px] md:text-[20px] font-normal focus:outline-none transition-colors bg-transparent ${hasError ? 'border-red-500 text-red-500 placeholder-red-300' : 'border-shade-400 text-gray-900 placeholder-shade-400 focus:border-gray-800'}`}
+                        className={`w-full border-b pb-2 text-[14px] md:text-[20px] font-normal focus:outline-none transition-colors bg-transparent ${isRed ? 'border-red-500 text-red-500 placeholder-red-300' : 'border-shade-400 text-gray-900 placeholder-shade-400 focus:border-gray-800'}`}
                     />
                 </div>
 
                 {/* Password Field */}
                 <div className="flex flex-col relative">
-                    <Typography variant="body-large" className={`tracking-wide uppercase mb-2 ${hasError ? 'text-red-500' : 'text-shade-900'}`}>
+                    <Typography variant="body-large" className={`tracking-wide uppercase mb-2 ${isRed ? 'text-red-500' : 'text-shade-900'}`}>
                         Password
                     </Typography>
                     <div className="relative w-full">
@@ -105,14 +116,14 @@ export default function LoginForm() {
                             type={showPassword ? "text" : "password"}
                             placeholder="Enter your password"
                             {...register("password", { required: "Password is required" })}
-                            className={`w-full border-b pb-2 text-[14px] md:text-[20px] font-normal pr-10 focus:outline-none transition-colors bg-transparent ${hasError ? 'border-red-500 text-red-500 placeholder-red-300' : 'border-shade-400 text-gray-900 placeholder-shade-400 focus:border-gray-800'}`}
+                            className={`w-full border-b pb-2 text-[14px] md:text-[20px] font-normal pr-10 focus:outline-none transition-colors bg-transparent ${isRed ? 'border-red-500 text-red-500 placeholder-red-300' : 'border-shade-400 text-gray-900 placeholder-shade-400 focus:border-gray-800'}`}
                         />
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className={`absolute right-0 top-0 bottom-2 transition-colors ${hasError ? 'text-red-400' : 'text-gray-400 hover:text-gray-600'}`}
+                            className={`absolute right-0 top-0 bottom-2 transition-colors ${isRed ? 'text-red-400' : 'text-gray-400 hover:text-gray-600'}`}
                         >
-                            {showPassword ? <FiEye size={18} /> : <FiEyeOff size={18} />}
+                            {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
                         </button>
                     </div>
                     <Link href="/forgotPassword" className="text-[12px] md:text-[14px] mt-2 text-shade-600 hover:text-shade-900">
@@ -121,10 +132,11 @@ export default function LoginForm() {
                 </div>
 
                 <div className="mt-2">
+                    {/* Replaced hasError with isDisabled for functionality */}
                     <button
                         type="submit"
-                        disabled={isLoading}
-                        className={`w-full py-3 px-2 rounded-[5.07px] text-[20px] mt-6.5 ${hasError ? 'bg-shade-200 text-shade-400 cursor-not-allowed' : 'bg-royal-blue-default hover:bg-royal-blue-hover text-white font-medium'} transition-colors`}
+                        disabled={isDisabled}
+                        className={`w-full py-3 px-2 rounded-[5.07px] text-[20px] mt-6.5 ${isDisabled ? 'bg-shade-200 text-shade-400 cursor-not-allowed' : 'bg-royal-blue-default hover:bg-royal-blue-hover text-white font-medium'} transition-colors`}
                     >
                         {isLoading ? 'Processing...' : 'Login Now'}
                     </button>

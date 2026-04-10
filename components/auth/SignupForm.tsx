@@ -202,7 +202,7 @@ export default function SignupForm() {
               onClick={() => setShowPassword(!showPassword)}
               className={`absolute right-0 top-0 bottom-2 transition-colors ${errors.password ? 'text-red-400' : 'text-shade-400 hover:text-shade-600'}`}
             >
-              {showPassword ? <FiEye size={20} /> : <FiEyeOff size={20} />}
+              {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
             </button>
           </div>
           {errors.password && <span className="text-red-500 text-[12px] mt-2">{errors.password.message as string}</span>}
