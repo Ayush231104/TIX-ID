@@ -6,7 +6,6 @@ import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/free-mode'
 import { Autoplay, Navigation } from 'swiper/modules'
-import MoviesForm from '@/components/admin/MoviesForm';
 import { useState} from 'react';
 import Link from 'next/link';
 import Skeleton from '@/components/ui/Skeleton';
@@ -27,7 +26,6 @@ const Hero = () => {
         Add Movies
       </button>
 
-      {showForm && <MoviesForm />}
       {isLoading ? (
         <div className="flex gap-6 overflow-hidden w-full">
           {[...Array(2)].map((_, i) => (

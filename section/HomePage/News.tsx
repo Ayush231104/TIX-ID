@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import NewsForm from '@/components/admin/NewsForm';
 import Link from 'next/link';
 import Image from 'next/image';
 import Skeleton from '@/components/ui/Skeleton';
@@ -38,8 +37,6 @@ const News = () => {
           </button>
         </div>
       </div>
-
-      {showForm && <NewsForm />}
 
       {isError && <div className="text-red-500">Error fetching news</div>}
       {isLoading ? (
