@@ -18,6 +18,7 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [adminRole, setAdminRole] = useState<'super_admin' | 'theater_admin' | null>(null);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -44,6 +45,40 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const getRole = async () => {
+      if (!user?.id) {
+        if (isMounted) setAdminRole(null);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('profile')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!isMounted || error || !data?.role) {
+        if (isMounted) setAdminRole(null);
+        return;
+      }
+
+      if (data.role === 'super_admin' || data.role === 'theater_admin') {
+        setAdminRole(data.role);
+      } else {
+        setAdminRole(null);
+      }
+    };
+
+    getRole();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id]);
+
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -55,6 +90,7 @@ export default function Navbar() {
   };
 
   const userName = user?.user_metadata?.full_name?.charAt(0).toUpperCase() || "U";
+  const canAccessAdmin = adminRole === 'super_admin' || adminRole === 'theater_admin';
 
   return (
     <div className="sticky top-0 z-999 w-full bg-white py-3">
@@ -85,11 +121,16 @@ export default function Navbar() {
             <Link href="/news">
               <Typography variant="h4" color="shade-900" className="hover:text-royal-blue-hover border-b-2 border-b-white hover:border-b-shade-900">TIX ID News</Typography>
             </Link>
+            {canAccessAdmin && (
+              <Link href="/admin">
+                <Typography variant="h4" color="shade-900" className="hover:text-royal-blue-hover border-b-2 border-b-white hover:border-b-shade-900">Admin</Typography>
+              </Link>
+            )}
 
             <div className="relative" ref={dropdownRef}>
               <div
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex justify-center items-center bg-gradient-to-r from-xxi-gold to-xxi-gold-dark size-9 text-white text-xl rounded-full cursor-pointer hover:opacity-90 transition-opacity"
+                className="flex justify-center items-center bg-linear-to-r from-xxi-gold to-xxi-gold-dark size-9 text-white text-xl rounded-full cursor-pointer hover:opacity-90 transition-opacity"
               >
                 {userName}
               </div>

@@ -36,9 +36,8 @@ export async function updateSession(request: NextRequest) {
   // Refresh session
   const { data: { user } } = await supabase.auth.getUser()
 
-  const isProtectedRoute = request.nextUrl.pathname.startsWith('/')
+  const isProtectedRoute = request.nextUrl.pathname.startsWith('/admin')
 
-  // Add protected routes here
   if (!user && isProtectedRoute) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/login'
@@ -48,10 +47,24 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  if( user && request.nextUrl.pathname === '/login') {
+  if (user && isProtectedRoute) {
+    const { data: profile, error: profileError } = await supabase
+      .from('profile')
+      .select('role')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (profileError || !profile || (profile.role !== 'super_admin' && profile.role !== 'theater_admin')) {
+      const homeUrl = request.nextUrl.clone()
+      homeUrl.pathname = '/'
+      return NextResponse.redirect(homeUrl)
+    }
+  }
+
+  if (user && request.nextUrl.pathname === '/login') {
     const dashboardUrl = request.nextUrl.clone()
-      dashboardUrl.pathname = '/'
-      return NextResponse.redirect(dashboardUrl)
+    dashboardUrl.pathname = '/'
+    return NextResponse.redirect(dashboardUrl)
   }
 
   return supabaseResponse

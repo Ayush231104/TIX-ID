@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation'
 import { FaFacebook, FaInstagram, FaTwitter } from 'react-icons/fa';
 import { RiThumbUpFill, RiThumbUpLine } from 'react-icons/ri';
+import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { useGetArticleQuery, useLikeArticleMutation } from '@/lib/features/api/newsApi';
 import Skeleton from '@/components/ui/Skeleton';
 import Typography from '@/components/ui/Typography';
@@ -19,7 +20,7 @@ export default function ArticlePage() {
 
   const handleLikeChange = async () => {
     if (!data?.article || isLiking) return;
-    const result = await toggleLike({ id: data.article.id, currentLikes: data.article.likes ?? 0 });
+    const result = await toggleLike({ id: data.article.id });
     if (result.error) {
       toast.error("You must be logged in to like articles.");
     }
@@ -146,7 +147,13 @@ export default function ArticlePage() {
               ${isLikedByMe ? 'bg-royal-blue text-white border-royal-blue hover:bg-royal-blue-hover' : 'border-shade-800 text-shade-900'}
             `}
           >
-            {isLikedByMe ? <RiThumbUpFill size={24} /> : <RiThumbUpLine size={24} />}
+            {isLiking ? (
+              <AiOutlineLoading3Quarters size={20} className='animate-spin' />
+            ) : isLikedByMe ? (
+              <RiThumbUpFill size={24} />
+            ) : (
+              <RiThumbUpLine size={24} />
+            )}
             <span className='text-xl font-normal'>{article.likes ?? 0}</span>
           </button>
         </div>

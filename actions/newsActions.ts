@@ -109,7 +109,7 @@ export async function getArticleAction(id: string) {
   };
 }
 
-export async function toggleLikeNews(newsId: string, currentLikes: number) {
+export async function toggleLikeNews(newsId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -124,27 +124,54 @@ export async function toggleLikeNews(newsId: string, currentLikes: number) {
     .maybeSingle();
 
   if (existingLike) {
-    await supabase.from('news_likes').delete().eq('user_id', user.id).eq('news_id', newsId);
-    await supabase.from('news').update({ likes: Math.max(0, currentLikes - 1) }).eq('id', newsId);
+    const { error: deleteError } = await supabase
+      .from('news_likes')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('news_id', newsId);
+
+    if (deleteError) {
+      return { success: false, error: deleteError.message };
+    }
   } else {
-    await supabase.from('news_likes').insert({ user_id: user.id, news_id: newsId });
-    await supabase.from('news').update({ likes: currentLikes + 1 }).eq('id', newsId);
+    const { error: insertError } = await supabase
+      .from('news_likes')
+      .insert({ user_id: user.id, news_id: newsId });
+
+    if (insertError) {
+      return { success: false, error: insertError.message };
+    }
+  }
+
+  const { count, error: countError } = await supabase
+    .from('news_likes')
+    .select('*', { count: 'exact', head: true })
+    .eq('news_id', newsId);
+
+  if (countError) {
+    return { success: false, error: countError.message };
+  }
+
+  const nextLikes = count ?? 0;
+
+  const { error: updateNewsError } = await supabase
+    .from('news')
+    .update({ likes: nextLikes })
+    .eq('id', newsId);
+
+  if (updateNewsError) {
+    return { success: false, error: updateNewsError.message };
   }
 
   revalidatePath(`/news/${newsId}`);
-  return { success: true };
-}
+  revalidatePath('/news');
+  revalidatePath('/');
 
-export async function likeNews(id: string, currentLikes: number) {
-  const supabase = await createClient();
-
-  const { error } = await supabase
-    .from('news')
-    .update({ likes: currentLikes + 1 })
-    .eq('id', id);
-
-  if (error) return { success: false, error: error.message };
-
-  revalidatePath(`/news/${id}`);
-  return { success: true };
+  return {
+    success: true,
+    data: {
+      likes: nextLikes,
+      isLikedByMe: !existingLike,
+    },
+  };
 }

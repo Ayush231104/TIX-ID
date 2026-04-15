@@ -10,6 +10,7 @@ type TypographyVariant =
   | "h6" 
   | "body-xl" 
   | "body-large" 
+  | "body-medium"
   | "body-default" 
   | "body-small";
 
@@ -54,6 +55,7 @@ export default function Typography({
     "h6": "text-[12px] font-bold leading-normal lg:leading-none",
     "body-xl": "text-[16px] md:text-[18px] lg:text-[20px] font-normal leading-[1.4] lg:leading-none",
     "body-large": "text-[16px] lg:text-[18px] font-normal leading-[1.5] lg:leading-[28px]",
+    "body-medium": "text-[13px] lg:text-[15px] font-normal leading-[1.5] lg:leading-[22px]",
     "body-default": "text-[14px] lg:text-[16px] font-normal leading-[1.5] lg:leading-[24px]",
     "body-small": "text-[12px] font-normal leading-[1.5] lg:leading-none",
   };

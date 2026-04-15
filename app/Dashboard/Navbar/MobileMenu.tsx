@@ -17,18 +17,51 @@ interface Props {
 export default function MobileMenu({ isOpen, onClose }: Props) {
 	const router = useRouter();
 	const [user, setUser] = useState<User | null>(null);
+	const [adminRole, setAdminRole] = useState<'super_admin' | 'theater_admin' | null>(null);
+
+	const fetchAdminRole = async (userId: string) => {
+		const { data, error } = await supabase
+			.from('profile')
+			.select('role')
+			.eq('user_id', userId)
+			.single();
+
+		if (error || !data?.role) {
+			setAdminRole(null);
+			return;
+		}
+
+		if (data.role === 'super_admin' || data.role === 'theater_admin') {
+			setAdminRole(data.role);
+			return;
+		}
+
+		setAdminRole(null);
+	};
 
 	useEffect(() => {
 		supabase.auth.getUser().then(({ data, error }) => {
 			if (error) {
 				console.log(error);
 			}
-			setUser(data?.user ?? null);
+			const currentUser = data?.user ?? null;
+			setUser(currentUser);
+			if (currentUser?.id) {
+				fetchAdminRole(currentUser.id);
+			} else {
+				setAdminRole(null);
+			}
 		});
 
 		const { data: listener } = supabase.auth.onAuthStateChange(
 			(event, session) => {
-				setUser(session?.user ?? null);
+				const currentUser = session?.user ?? null;
+				setUser(currentUser);
+				if (currentUser?.id) {
+					fetchAdminRole(currentUser.id);
+				} else {
+					setAdminRole(null);
+				}
 			}
 		);
 
@@ -50,6 +83,7 @@ export default function MobileMenu({ isOpen, onClose }: Props) {
 
 	const userName = user?.user_metadata?.full_name || "User";
 	const userInitial = userName.charAt(0).toUpperCase();
+	const canAccessAdmin = adminRole === 'super_admin' || adminRole === 'theater_admin';
 
 	return (
 		<>
@@ -96,6 +130,12 @@ export default function MobileMenu({ isOpen, onClose }: Props) {
 							<Link href="/news" onClick={onClose} className="block font-medium text-[16px] text-shade-900 hover:text-royal-blue-default transition-colors">TIX ID News</Link>
 							<hr className="border-gray-200 w-full mt-4" />
 						</div>
+						{canAccessAdmin && (
+							<div>
+								<Link href="/admin" onClick={onClose} className="block font-medium text-[16px] text-shade-900 hover:text-royal-blue-default transition-colors">Admin</Link>
+								<hr className="border-gray-200 w-full mt-4" />
+							</div>
+						)}
 					</div>
 
 					<div className="mt-auto pt-6">
