@@ -1,5 +1,5 @@
 import Typography from '@/components/ui/Typography'
-import ScreenForm from './ScreenForm'
+import ScreenForm from '../../../components/admin/forms/ScreenForm'
 
 export default function AdminScreensPage() {
   return (

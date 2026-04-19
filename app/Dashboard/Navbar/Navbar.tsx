@@ -7,7 +7,6 @@ import { useEffect, useState, useRef } from "react";
 import MobileMenu from "./MobileMenu";
 import { createClient } from "@/utils/supabase/client";
 import { usePathname, useRouter } from "next/navigation";
-import { LuLogOut } from "react-icons/lu";
 import Typography from "@/components/ui/Typography";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import { useAppSelector } from "@/lib/hooks";
@@ -128,29 +127,12 @@ export default function Navbar() {
             )}
 
             <div className="relative" ref={dropdownRef}>
-              <div
+              <Link href="/profile"
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex justify-center items-center bg-linear-to-r from-xxi-gold to-xxi-gold-dark size-9 text-white text-xl rounded-full cursor-pointer hover:opacity-90 transition-opacity"
               >
                 {userName}
-              </div>
-
-              {isDropdownOpen && (
-                <div className="absolute right-0 mt-3 w-40 bg-white rounded-lg shadow-lg border border-shade-100 z-50">
-                  <div className="flex items-center p-2 px-6">
-                    <button
-                      onClick={() => {
-                        setShowLogoutModal(true);
-                        setIsDropdownOpen(false);
-                      }}
-                      className="w-full flex justify-between items-center text-left text-[18px] font-medium text-shade-900 hover:text-royal-blue-hover transition-colors gap-2"
-                    >
-                      <span>Logout</span>
-                      <LuLogOut className="size-5" />
-                    </button>
-                  </div>
-                </div>
-              )}
+              </Link>
             </div>
 
             {showLogoutModal && (

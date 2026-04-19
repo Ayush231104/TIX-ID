@@ -4,6 +4,9 @@ import { revalidatePath } from 'next/cache'
 import type {
   Brand,
   City,
+  Discount,
+  DiscountInsert,
+  DiscountUpdate,
   Movie,
   MovieInsert,
   MovieUpdate,
@@ -454,6 +457,55 @@ export async function getAdminNewsById(id: string): Promise<ActionResult<News>> 
   return { success: true, data: data as News, error: null }
 }
 
+export async function getAdminDiscounts(): Promise<ActionResult<Discount[]>> {
+  const supabase = await createClient()
+  const contextResult = await getAdminContext()
+
+  if (!contextResult.success || !contextResult.data) {
+    return { success: false, data: null, error: contextResult.error }
+  }
+
+  if (contextResult.data.role !== 'super_admin') {
+    return { success: false, data: null, error: 'Only super admin can access discount management' }
+  }
+
+  const { data, error } = await supabase
+    .from('discount')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    return { success: false, data: null, error: error.message }
+  }
+
+  return { success: true, data: (data ?? []) as Discount[], error: null }
+}
+
+export async function getAdminDiscountById(id: string): Promise<ActionResult<Discount>> {
+  const supabase = await createClient()
+  const contextResult = await getAdminContext()
+
+  if (!contextResult.success || !contextResult.data) {
+    return { success: false, data: null, error: contextResult.error }
+  }
+
+  if (contextResult.data.role !== 'super_admin') {
+    return { success: false, data: null, error: 'Only super admin can access discount management' }
+  }
+
+  const { data, error } = await supabase
+    .from('discount')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error) {
+    return { success: false, data: null, error: error.message }
+  }
+
+  return { success: true, data: data as Discount, error: null }
+}
+
 export async function getAdminTheaterById(id: string): Promise<ActionResult<Theater>> {
   const supabase = await createClient()
   const contextResult = await getAdminContext()
@@ -590,6 +642,35 @@ export async function createNews(data: NewsInsert): Promise<ActionResult<News>> 
   return { success: true, data: insertData as News, error: null }
 }
 
+export async function createDiscount(data: DiscountInsert): Promise<ActionResult<Discount>> {
+  const supabase = await createClient()
+  const contextResult = await getAdminContext()
+
+  if (!contextResult.success || !contextResult.data) {
+    return { success: false, data: null, error: contextResult.error }
+  }
+
+  if (contextResult.data.role !== 'super_admin') {
+    return { success: false, data: null, error: 'Only super admin can create discounts' }
+  }
+
+  const { data: insertData, error } = await supabase
+    .from('discount')
+    .insert([data])
+    .select('*')
+    .single()
+
+  if (error) {
+    return { success: false, data: null, error: error.message }
+  }
+
+  revalidatePath('/admin/discounts')
+  revalidatePath('/admin/dashboard')
+  revalidatePath('/tickets')
+
+  return { success: true, data: insertData as Discount, error: null }
+}
+
 export async function createTheater(data: TheaterInsert): Promise<ActionResult<Theater>> {
   const supabase = await createClient()
   const contextResult = await getAdminContext()
@@ -630,7 +711,7 @@ export async function createScreen(data: ScreenInsert): Promise<ActionResult<Scr
     return { success: false, data: null, error: contextResult.error }
   }
 
-  const { role, userId } = contextResult.data
+  const { role } = contextResult.data
 
   if (role === 'theater_admin') {
     const ownershipResult = await ensureTheaterOwnership(supabase, contextResult.data, data.theater_id ?? '')
@@ -696,7 +777,7 @@ export async function createShowtime(data: ShowtimeInsert): Promise<ActionResult
     return { success: false, data: null, error: contextResult.error }
   }
 
-  const { role, userId } = contextResult.data
+  const { role } = contextResult.data
 
   if (role === 'theater_admin') {
     const ownershipResult = await ensureTheaterOwnership(supabase, contextResult.data, data.theater_id ?? '')
@@ -779,6 +860,36 @@ export async function updateNews(id: string, data: NewsUpdate): Promise<ActionRe
   revalidatePath('/news')
 
   return { success: true, data: updatedData as News, error: null }
+}
+
+export async function updateDiscount(id: string, data: DiscountUpdate): Promise<ActionResult<Discount>> {
+  const supabase = await createClient()
+  const contextResult = await getAdminContext()
+
+  if (!contextResult.success || !contextResult.data) {
+    return { success: false, data: null, error: contextResult.error }
+  }
+
+  if (contextResult.data.role !== 'super_admin') {
+    return { success: false, data: null, error: 'Only super admin can update discounts' }
+  }
+
+  const { data: updatedData, error } = await supabase
+    .from('discount')
+    .update(data)
+    .eq('id', id)
+    .select('*')
+    .single()
+
+  if (error) {
+    return { success: false, data: null, error: error.message }
+  }
+
+  revalidatePath('/admin/discounts')
+  revalidatePath('/admin/dashboard')
+  revalidatePath('/tickets')
+
+  return { success: true, data: updatedData as Discount, error: null }
 }
 
 export async function updateTheater(id: string, data: TheaterUpdate): Promise<ActionResult<Theater>> {
@@ -957,6 +1068,34 @@ export async function deleteNews(id: string): Promise<ActionResult<null>> {
   revalidatePath('/admin/news')
   revalidatePath('/admin/dashboard')
   revalidatePath('/news')
+
+  return { success: true, data: null, error: null }
+}
+
+export async function deleteDiscount(id: string): Promise<ActionResult<null>> {
+  const supabase = await createClient()
+  const contextResult = await getAdminContext()
+
+  if (!contextResult.success || !contextResult.data) {
+    return { success: false, data: null, error: contextResult.error }
+  }
+
+  if (contextResult.data.role !== 'super_admin') {
+    return { success: false, data: null, error: 'Only super admin can delete discounts' }
+  }
+
+  const { error } = await supabase
+    .from('discount')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    return { success: false, data: null, error: error.message }
+  }
+
+  revalidatePath('/admin/discounts')
+  revalidatePath('/admin/dashboard')
+  revalidatePath('/tickets')
 
   return { success: true, data: null, error: null }
 }

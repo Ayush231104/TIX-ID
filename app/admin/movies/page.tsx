@@ -1,5 +1,5 @@
 import Typography from '@/components/ui/Typography'
-import MovieForm from './MovieForm'
+import MovieForm from '../../../components/admin/forms/MovieForm'
 import { getAdminRole } from '@/actions/adminActions'
 import { redirect } from 'next/navigation'
 

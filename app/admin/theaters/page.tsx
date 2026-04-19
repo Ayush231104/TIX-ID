@@ -1,5 +1,5 @@
 import Typography from '@/components/ui/Typography'
-import TheaterForm from './TheaterForm'
+import TheaterForm from '../../../components/admin/forms/TheaterForm'
 
 export default function AdminTheatersPage() {
   return (

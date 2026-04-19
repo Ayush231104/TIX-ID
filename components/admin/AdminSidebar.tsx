@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
-import { Film, Clapperboard, Building2, CalendarPlus2, Newspaper, ArrowLeft, LayoutDashboard } from 'lucide-react'
+import { Film, Clapperboard, Building2, CalendarPlus2, Newspaper, ArrowLeft, LayoutDashboard, TicketPercent } from 'lucide-react'
 import Typography from '@/components/ui/Typography'
 import { useGetAdminRoleQuery } from '@/lib/features/api/adminApi'
 
@@ -17,6 +17,7 @@ const superAdminLinks: SidebarLink[] = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/movies', label: 'Movies', icon: Film },
   { href: '/admin/news', label: 'News', icon: Newspaper },
+  { href: '/admin/discounts', label: 'Discounts', icon: TicketPercent },
 ]
 
 const theaterAdminLinks: SidebarLink[] = [

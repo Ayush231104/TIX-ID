@@ -3,7 +3,9 @@ import {
   type AdminScreenListItem,
   type AdminShowtimeListItem,
   type AdminTheaterListItem,
+  createDiscount,
   deleteMovie,
+  deleteDiscount,
   deleteNews,
   deleteScreen,
   deleteShowtime,
@@ -15,6 +17,8 @@ import {
   createShowtime,
   getAdminBrands,
   getAdminCities,
+  getAdminDiscountById,
+  getAdminDiscounts,
   getAdminMovieById,
   getAdminMovies,
   getAdminNews,
@@ -28,6 +32,7 @@ import {
   getAdminTheaters,
   getAdminTheatersWithDetails,
   getScreensByTheater,
+  updateDiscount,
   updateMovie,
   updateNews,
   updateScreen,
@@ -37,6 +42,9 @@ import {
 import type {
   Brand,
   City,
+  Discount,
+  DiscountInsert,
+  DiscountUpdate,
   Movie,
   MovieInsert,
   MovieUpdate,
@@ -73,6 +81,7 @@ export const adminApi = createApi({
     'AdminBrands',
     'AdminCities',
     'AdminNews',
+    'AdminDiscounts',
   ],
   endpoints: (builder) => ({
     getAdminRole: builder.query<AdminRole, void>({
@@ -153,6 +162,38 @@ export const adminApi = createApi({
         }
       },
       providesTags: (result, error, id) => [{ type: 'AdminNews', id }],
+    }),
+
+    getAdminDiscounts: builder.query<Discount[], void>({
+      queryFn: async () => {
+        try {
+          const result = await getAdminDiscounts()
+          if (!result.success || !result.data) {
+            return { error: { message: result.error ?? 'Failed to fetch discounts' } }
+          }
+          return { data: result.data }
+        } catch (error) {
+          if (error instanceof Error) return { error: { message: error.message } }
+          return { error: { message: 'An unexpected error occurred' } }
+        }
+      },
+      providesTags: ['AdminDiscounts'],
+    }),
+
+    getAdminDiscountById: builder.query<Discount, string>({
+      queryFn: async (id) => {
+        try {
+          const result = await getAdminDiscountById(id)
+          if (!result.success || !result.data) {
+            return { error: { message: result.error ?? 'Failed to fetch discount details' } }
+          }
+          return { data: result.data }
+        } catch (error) {
+          if (error instanceof Error) return { error: { message: error.message } }
+          return { error: { message: 'An unexpected error occurred' } }
+        }
+      },
+      providesTags: (result, error, id) => [{ type: 'AdminDiscounts', id }],
     }),
 
     getAdminTheaters: builder.query<Theater[], void>({
@@ -425,6 +466,54 @@ export const adminApi = createApi({
       invalidatesTags: (result, error, id) => [{ type: 'AdminNews', id }, 'AdminNews'],
     }),
 
+    createDiscount: builder.mutation<Discount, DiscountInsert>({
+      queryFn: async (payload) => {
+        try {
+          const result = await createDiscount(payload)
+          if (!result.success || !result.data) {
+            return { error: { message: result.error ?? 'Failed to create discount' } }
+          }
+          return { data: result.data }
+        } catch (error) {
+          if (error instanceof Error) return { error: { message: error.message } }
+          return { error: { message: 'An unexpected error occurred' } }
+        }
+      },
+      invalidatesTags: ['AdminDiscounts'],
+    }),
+
+    updateDiscount: builder.mutation<Discount, { id: string; data: DiscountUpdate }>({
+      queryFn: async ({ id, data }) => {
+        try {
+          const result = await updateDiscount(id, data)
+          if (!result.success || !result.data) {
+            return { error: { message: result.error ?? 'Failed to update discount' } }
+          }
+          return { data: result.data }
+        } catch (error) {
+          if (error instanceof Error) return { error: { message: error.message } }
+          return { error: { message: 'An unexpected error occurred' } }
+        }
+      },
+      invalidatesTags: (result, error, { id }) => [{ type: 'AdminDiscounts', id }, 'AdminDiscounts'],
+    }),
+
+    deleteDiscount: builder.mutation<null, string>({
+      queryFn: async (id) => {
+        try {
+          const result = await deleteDiscount(id)
+          if (!result.success) {
+            return { error: { message: result.error ?? 'Failed to delete discount' } }
+          }
+          return { data: null }
+        } catch (error) {
+          if (error instanceof Error) return { error: { message: error.message } }
+          return { error: { message: 'An unexpected error occurred' } }
+        }
+      },
+      invalidatesTags: (result, error, id) => [{ type: 'AdminDiscounts', id }, 'AdminDiscounts'],
+    }),
+
     createTheater: builder.mutation<Theater, TheaterInsert>({
       queryFn: async (payload) => {
         try {
@@ -587,6 +676,8 @@ export const {
   useGetAdminMovieByIdQuery,
   useGetAdminNewsQuery,
   useGetAdminNewsByIdQuery,
+  useGetAdminDiscountsQuery,
+  useGetAdminDiscountByIdQuery,
   useGetAdminTheatersQuery,
   useGetAdminTheatersWithDetailsQuery,
   useGetAdminTheaterByIdQuery,
@@ -603,6 +694,9 @@ export const {
   useCreateNewsMutation,
   useUpdateNewsMutation,
   useDeleteNewsMutation,
+  useCreateDiscountMutation,
+  useUpdateDiscountMutation,
+  useDeleteDiscountMutation,
   useCreateTheaterMutation,
   useUpdateTheaterMutation,
   useDeleteTheaterMutation,

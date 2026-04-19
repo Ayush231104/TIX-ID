@@ -1,5 +1,5 @@
 import Typography from '@/components/ui/Typography'
-import ShowtimeForm from './ShowtimeForm'
+import ShowtimeForm from '../../../components/admin/forms/ShowtimeForm'
 
 export default function AdminShowtimesPage() {
   return (

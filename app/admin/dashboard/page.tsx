@@ -1,32 +1,34 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
 import Modal from '@/components/ui/Modal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import Typography from '@/components/ui/Typography'
 import GenericTable, { Badge } from '@/components/admin/data-table/GenericTable'
 import MoviesTable from '@/components/admin/data-table/MoviesTable'
-import MovieForm from '@/app/admin/movies/MovieForm'
-import NewsForm from '@/app/admin/news/NewsForm'
-import TheaterForm from '@/app/admin/theaters/TheaterForm'
-import ScreenForm from '@/app/admin/screens/ScreenForm'
-import ShowtimeForm from '@/app/admin/showtimes/ShowtimeForm'
+import MovieForm from '@/components/admin/forms/MovieForm'
+import NewsForm from '@/components/admin/forms/NewsForm'
+import TheaterForm from '@/components/admin/forms/TheaterForm'
+import ScreenForm from '@/components/admin/forms/ScreenForm'
+import ShowtimeForm from '@/components/admin/forms/ShowtimeForm'
+import DiscountForm from '@/app/admin/discounts/DiscountForm'
 import {
     useDeleteNewsMutation,
     useDeleteScreenMutation,
     useDeleteShowtimeMutation,
     useDeleteTheaterMutation,
+    useDeleteDiscountMutation,
     useGetAdminNewsQuery,
     useGetAdminRoleQuery,
     useGetAdminScreensWithDetailsQuery,
     useGetAdminShowtimesWithDetailsQuery,
     useGetAdminTheatersWithDetailsQuery,
+    useGetAdminDiscountsQuery,
 } from '@/lib/features/api/adminApi'
-import type { Movie, News, Screen, Showtime, Theater } from '@/types/index'
+import type { Discount, Movie, News, Screen, Showtime, Theater } from '@/types/index'
 import type { AdminScreenListItem, AdminShowtimeListItem, AdminTheaterListItem } from '@/actions/adminActions'
 
-type DashboardTab = 'movies' | 'news' | 'theaters' | 'screens' | 'showtimes'
+type DashboardTab = 'movies' | 'news' | 'discounts' | 'theaters' | 'screens' | 'showtimes'
 
 type PendingDelete = {
     entity: DashboardTab
@@ -37,6 +39,7 @@ type PendingDelete = {
 type EditingEntity =
     | { entity: 'movies'; data: Movie }
     | { entity: 'news'; data: News }
+    | { entity: 'discounts'; data: Discount }
     | { entity: 'theaters'; data: Theater }
     | { entity: 'screens'; data: Screen }
     | { entity: 'showtimes'; data: Showtime }
@@ -44,6 +47,7 @@ type EditingEntity =
 const superAdminTabs: { key: DashboardTab; label: string; addLabel: string; addHref: string }[] = [
     { key: 'movies', label: 'Movies', addLabel: 'Movie', addHref: '/admin/movies' },
     { key: 'news', label: 'News', addLabel: 'News', addHref: '/admin/news' },
+    { key: 'discounts', label: 'Discounts', addLabel: 'Discount', addHref: '/admin/discounts' },
 ]
 
 const theaterAdminTabs: { key: DashboardTab; label: string; addLabel: string; addHref: string }[] = [
@@ -87,6 +91,9 @@ export default function AdminDashboardPage() {
     const { data: news = [], isLoading: isNewsLoading } = useGetAdminNewsQuery(undefined, {
         skip: !isSuperAdmin,
     })
+    const { data: discounts = [], isLoading: isDiscountsLoading } = useGetAdminDiscountsQuery(undefined, {
+        skip: !isSuperAdmin,
+    })
 
     const { data: theaters = [], isLoading: isTheatersLoading } = useGetAdminTheatersWithDetailsQuery(undefined, {
         skip: !isTheaterAdmin,
@@ -99,16 +106,16 @@ export default function AdminDashboardPage() {
     })
 
     const [deleteNews, { isLoading: isDeletingNews }] = useDeleteNewsMutation()
+    const [deleteDiscount, { isLoading: isDeletingDiscount }] = useDeleteDiscountMutation()
     const [deleteTheater, { isLoading: isDeletingTheater }] = useDeleteTheaterMutation()
     const [deleteScreen, { isLoading: isDeletingScreen }] = useDeleteScreenMutation()
     const [deleteShowtime, { isLoading: isDeletingShowtime }] = useDeleteShowtimeMutation()
 
-    const isDeleting = isDeletingNews || isDeletingTheater || isDeletingScreen || isDeletingShowtime
+    const isDeleting = isDeletingNews || isDeletingDiscount || isDeletingTheater || isDeletingScreen || isDeletingShowtime
 
     const activeTab = tabs.some((tab) => tab.key === selectedTab) ? selectedTab : tabs[0]?.key ?? 'movies'
     const activeConfig = tabs.find((tab) => tab.key === activeTab)
     const activeTabLabel = activeConfig?.label ?? 'Overview'
-    const accessLabel = isSuperAdmin ? 'Super Admin' : isTheaterAdmin ? 'Theater Admin' : 'Admin'
     const theaterRows = theaters as AdminTheaterListItem[]
     const screenRows = screens as AdminScreenListItem[]
     const showtimeRows = showtimes as AdminShowtimeListItem[]
@@ -130,6 +137,10 @@ export default function AdminDashboardPage() {
         try {
             if (pendingDelete.entity === 'news') {
                 await deleteNews(pendingDelete.id).unwrap()
+            }
+
+            if (pendingDelete.entity === 'discounts') {
+                await deleteDiscount(pendingDelete.id).unwrap()
             }
 
             if (pendingDelete.entity === 'theaters') {
@@ -206,6 +217,78 @@ export default function AdminDashboardPage() {
                     emptyMessage="No news items found"
                     onEdit={(article) => openEditModal({ entity: 'news', data: article })}
                     onDelete={(article) => onDeleteRequest({ entity: 'news', id: article.id, label: article.title ?? 'news item' })}
+                    isDeleting={isDeleting}
+                />
+            )
+        }
+
+        if (isSuperAdmin && activeTab === 'discounts') {
+            return (
+                <GenericTable<Discount>
+                    columns={[
+                        {
+                            key: 'code',
+                            header: 'Code',
+                            render: (discount) => (
+                                <Typography variant="body-medium" color="shade-900" className="font-semibold">
+                                    {discount.code}
+                                </Typography>
+                            ),
+                        },
+                        {
+                            key: 'type',
+                            header: 'Type',
+                            render: (discount) => <Badge value={discount.discount_type === 'percent' ? 'Percentage' : 'Nominal'} />,
+                        },
+                        {
+                            key: 'discounted_amount',
+                            header: 'Amount',
+                            render: (discount) => (
+                                <Typography variant="body-medium" color="shade-700">
+                                    {Number(discount.discounted_amount ?? 0).toLocaleString('id-ID')}
+                                </Typography>
+                            ),
+                        },
+                        {
+                            key: 'min_amount',
+                            header: 'Min Amount',
+                            render: (discount) => (
+                                <Typography variant="body-medium" color="shade-700">
+                                    {discount.min_amount === null ? '-' : Number(discount.min_amount).toLocaleString('id-ID')}
+                                </Typography>
+                            ),
+                        },
+                        {
+                            key: 'usage',
+                            header: 'Usage',
+                            render: (discount) => (
+                                <Typography variant="body-medium" color="shade-700">
+                                    {discount.usage_count ?? 0}/{discount.usage_limit ?? '-'}
+                                </Typography>
+                            ),
+                        },
+                        {
+                            key: 'valid_until',
+                            header: 'Valid Until',
+                            render: (discount) => (
+                                <Typography variant="body-medium" color="shade-700">
+                                    {formatDateTime(discount.valid_until)}
+                                </Typography>
+                            ),
+                        },
+                        {
+                            key: 'active',
+                            header: 'Active',
+                            render: (discount) => <Badge value={discount.is_active ? 'Active' : 'Inactive'} />,
+                        },
+                    ]}
+                    data={discounts}
+                    isLoading={isDiscountsLoading}
+                    getRowId={(discount) => discount.id}
+                    rowLabel={(discount) => discount.code}
+                    emptyMessage="No discounts found"
+                    onEdit={(discount) => openEditModal({ entity: 'discounts', data: discount })}
+                    onDelete={(discount) => onDeleteRequest({ entity: 'discounts', id: discount.id, label: discount.code })}
                     isDeleting={isDeleting}
                 />
             )
@@ -464,6 +547,10 @@ export default function AdminDashboardPage() {
 
                 {editingEntity?.entity === 'news' ? (
                     <NewsForm initialData={editingEntity.data} onSuccess={() => setEditingEntity(null)} />
+                ) : null}
+
+                {editingEntity?.entity === 'discounts' ? (
+                    <DiscountForm initialData={editingEntity.data} onSuccess={() => setEditingEntity(null)} />
                 ) : null}
 
                 {editingEntity?.entity === 'theaters' ? (

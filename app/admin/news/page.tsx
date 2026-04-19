@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Typography from '@/components/ui/Typography'
 import { getAdminRole } from '@/actions/adminActions'
-import NewsForm from './NewsForm'
+import NewsForm from '../../../components/admin/forms/NewsForm'
 
 export default async function AdminNewsPage() {
   const roleResult = await getAdminRole()
