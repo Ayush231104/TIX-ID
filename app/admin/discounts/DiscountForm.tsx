@@ -122,8 +122,9 @@ export default function DiscountForm({ initialData, onSuccess }: DiscountFormPro
             render={({ field }) => (
               <AdminDropdown
                 title="Discount Type"
+                placeholder="Select discount type"
                 value={field.value}
-                onChange={(value) => field.onChange(value as 'percent' | 'flat')}
+                onSelect={(value) => field.onChange(value as 'percent' | 'flat')}
                 options={[
                   { value: 'percent', label: 'Percentage' },
                   { value: 'flat', label: 'Nominal' },
